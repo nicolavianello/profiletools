@@ -1,6 +1,7 @@
 # Copyright 2017 Nicola Vianello
 # This is an implementation of reading routine for TCV
 # in order to be used with the profiletools and Gaussian Process Regression
+#
 # This program is distributed under the terms of the
 # GNU General Purpose License (GPL).
 # Refer to http://www.gnu.org/licenses/gpl.txt
@@ -27,6 +28,7 @@ from .core import Profile, Channel, read_csv, read_NetCDF
 from . import transformations
 
 import warnings
+
 try:
     import MDSplus
 except ImportError:
@@ -40,6 +42,7 @@ import scipy.interpolate
 import scipy.stats
 import gptools
 import matplotlib.pyplot as plt
+
 try:
     import TRIPPy
 except ImportError:
@@ -126,18 +129,18 @@ class BivariatePlasmaProfile(Profile):
                     p.X[:, :, 0] = scipy.power(p.X[:, :, 0], 2)
                     p.err_X[:, :, 0] = p.err_X[:, :, 0] * 2 * p.X[:, :, 0]
             elif (new_abscissa.startswith('sqrt') and
-                  self.abscissa == new_abscissa[4:]):
+                          self.abscissa == new_abscissa[4:]):
                 if self.X is not None:
                     new_rho = scipy.power(self.X[:, 0], 0.5)
                     # Approximate form from uncertainty propagation:
                     err_new_rho = self.err_X[:, 0] / \
-                        (2 * scipy.sqrt(self.X[:, 0]))
+                                  (2 * scipy.sqrt(self.X[:, 0]))
 
                 # Handle transformed quantities:
                 for p in self.transformed:
                     p.X[:, :, 0] = scipy.power(p.X[:, :, 0], 0.5)
                     p.err_X[:, :, 0] = p.err_X[:, :, 0] / \
-                        (2 * scipy.sqrt(p.X[:, :, 0]))
+                                       (2 * scipy.sqrt(p.X[:, :, 0]))
             else:
                 times = self._get_efit_times_to_average()
 
@@ -214,7 +217,7 @@ class BivariatePlasmaProfile(Profile):
                     p.X[:, :, 1] = scipy.power(p.X[:, :, 1], 2)
                     p.err_X[:, :, 1] = scipy.zeros_like(p.X[:, :, 1])
             elif (new_abscissa.startswith('sqrt') and
-                  self.abscissa == new_abscissa[4:]):
+                          self.abscissa == new_abscissa[4:]):
                 if self.X is not None:
                     new_rho = scipy.power(self.X[:, 1], 0.5)
 
@@ -907,7 +910,7 @@ class BivariatePlasmaProfile(Profile):
                         mean_dX_droa_2 = scipy.tile(
                             mean_dX_droa_2, (val_samps.shape[1], 1)).T
                     a_L_grad_samps = g2_samps * mean_dX_droa / \
-                        grad_samps + mean_dX_droa_2 / mean_dX_droa
+                                     grad_samps + mean_dX_droa_2 / mean_dX_droa
                     mean_a_L_grad = scipy.mean(a_L_grad_samps, axis=1)
                     std_a_L_grad = scipy.std(
                         a_L_grad_samps,
@@ -915,7 +918,7 @@ class BivariatePlasmaProfile(Profile):
                         ddof=predict_kwargs.get(
                             'ddof',
                             1))
-                    a2_2_samps = (g2_samps * mean_dX_droa**2.0 +
+                    a2_2_samps = (g2_samps * mean_dX_droa ** 2.0 +
                                   grad_samps * mean_dX_droa_2) / val_samps
                     mean_a2_2 = scipy.mean(a2_2_samps, axis=1)
                     std_a2_2 = scipy.std(
@@ -928,36 +931,36 @@ class BivariatePlasmaProfile(Profile):
                 # Compute using error propagation:
                 mean_a_L = -mean_grad * mean_dX_droa / mean_val
                 std_a_L = scipy.sqrt(
-                    var_val * (mean_grad * mean_dX_droa / mean_val**2.0)**2.0 +
-                    var_grad * (mean_dX_droa / mean_val)**2.0 +
-                    var_dX_droa * (mean_grad / mean_val)**2 -
+                    var_val * (mean_grad * mean_dX_droa / mean_val ** 2.0) ** 2.0 +
+                    var_grad * (mean_dX_droa / mean_val) ** 2.0 +
+                    var_dX_droa * (mean_grad / mean_val) ** 2 -
                     2.0 * cov_val_grad *
-                    (mean_grad * mean_dX_droa**2.0 / mean_val**3.0)
+                    (mean_grad * mean_dX_droa ** 2.0 / mean_val ** 3.0)
                 )
                 if compute_2:
                     mean_a_L_grad = mean_2 * mean_dX_droa / \
-                        mean_grad + mean_dX_droa_2 / mean_dX_droa
+                                    mean_grad + mean_dX_droa_2 / mean_dX_droa
                     std_a_L_grad = scipy.sqrt(
-                        var_grad * (mean_2 * mean_dX_droa / mean_grad**2.0)**2.0 +
-                        var_2 * (mean_dX_droa / mean_grad)**2.0 -
-                        2.0 * cov_grad_2 * mean_2 * mean_dX_droa**2.0 / mean_grad**3.0 +
-                        var_dX_droa * (mean_2 / mean_grad - mean_dX_droa_2 / mean_dX_droa**2.0)**2.0 +
-                        var_dX_droa_2 / mean_dX_droa**2.0 +
+                        var_grad * (mean_2 * mean_dX_droa / mean_grad ** 2.0) ** 2.0 +
+                        var_2 * (mean_dX_droa / mean_grad) ** 2.0 -
+                        2.0 * cov_grad_2 * mean_2 * mean_dX_droa ** 2.0 / mean_grad ** 3.0 +
+                        var_dX_droa * (mean_2 / mean_grad - mean_dX_droa_2 / mean_dX_droa ** 2.0) ** 2.0 +
+                        var_dX_droa_2 / mean_dX_droa ** 2.0 +
                         2.0 * cov_dX_droa_2 *
                         (mean_2 / mean_grad - mean_dX_droa_2 /
-                         mean_dX_droa**2.0) / mean_dX_droa
+                         mean_dX_droa ** 2.0) / mean_dX_droa
                     )
-                    mean_a2_2 = (mean_2 * mean_dX_droa**2.0 +
+                    mean_a2_2 = (mean_2 * mean_dX_droa ** 2.0 +
                                  mean_grad * mean_dX_droa_2) / mean_val
                     std_a2_2 = scipy.sqrt(
-                        var_val * (mean_2 * mean_dX_droa**2.0 + mean_grad * mean_dX_droa_2)**2 / mean_val**4 +
-                        var_2 * (mean_dX_droa**2.0 / mean_val)**2.0 -
-                        2.0 * cov_val_2 * mean_dX_droa**2.0 / mean_val**3.0 * (
-                            mean_2 * mean_dX_droa**2.0 + mean_grad * mean_dX_droa_2
+                        var_val * (mean_2 * mean_dX_droa ** 2.0 + mean_grad * mean_dX_droa_2) ** 2 / mean_val ** 4 +
+                        var_2 * (mean_dX_droa ** 2.0 / mean_val) ** 2.0 -
+                        2.0 * cov_val_2 * mean_dX_droa ** 2.0 / mean_val ** 3.0 * (
+                            mean_2 * mean_dX_droa ** 2.0 + mean_grad * mean_dX_droa_2
                         ) +
-                        4.0 * var_dX_droa * (mean_2 * mean_dX_droa / mean_val)**2.0 +
-                        var_dX_droa_2 * (mean_grad / mean_val)**2.0 +
-                        4.0 * cov_dX_droa_2 * mean_grad * mean_2 * mean_dX_droa / mean_val**2.0
+                        4.0 * var_dX_droa * (mean_2 * mean_dX_droa / mean_val) ** 2.0 +
+                        var_dX_droa_2 * (mean_grad / mean_val) ** 2.0 +
+                        4.0 * cov_dX_droa_2 * mean_grad * mean_2 * mean_dX_droa / mean_val ** 2.0
                     )
 
             # Plot result:
@@ -1121,7 +1124,7 @@ class BivariatePlasmaProfile(Profile):
                     vol_grid = scipy.stats.nanmean(vol_grid, axis=0)
                 else:
                     if self.abscissa.startswith('sqrt'):
-                        vol_grid = scipy.asarray(rho_grid, dtype=float)**2
+                        vol_grid = scipy.asarray(rho_grid, dtype=float) ** 2
                     else:
                         vol_grid = scipy.asarray(rho_grid, dtype=float)
 
@@ -1285,9 +1288,9 @@ class BivariatePlasmaProfile(Profile):
                 cov_res = res[1]
                 mean = mean_res[1] / mean_res[0]
                 std = scipy.sqrt(
-                    cov_res[1, 1] / mean_res[0]**2 +
-                    cov_res[0, 0] * mean_res[1]**2 / mean_res[0]**4 -
-                    2.0 * cov_res[0, 1] * mean_res[1] / mean_res[0]**3
+                    cov_res[1, 1] / mean_res[0] ** 2 +
+                    cov_res[0, 0] * mean_res[1] ** 2 / mean_res[0] ** 4 -
+                    2.0 * cov_res[0, 1] * mean_res[1] / mean_res[0] ** 3
                 )
                 return (mean, std)
             else:
@@ -1297,7 +1300,7 @@ class BivariatePlasmaProfile(Profile):
                                       "supported for X_dim > 1!")
 
 
-def neTS(shot, abscissa='RZ', t_min=None, t_max=None, 
+def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
          efit_tree=None, remove_edge=False, remove_zeros=True):
     """Returns a profile representing electron density
        from the core Thomson scattering system.
@@ -1339,7 +1342,7 @@ def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
     dev_ne_TS = electrons.getNode(
         r'\results::thomson:ne:error_bar').data() / 1e20
     dev_ne_TS[dev_ne_TS < 0] = 0
-    
+
     Z_CTS = electrons.getNode(
         r'\diagz::thomson_set_up:vertical_pos').data()
     R_CTS = electrons.getNode(
@@ -1388,9 +1391,9 @@ def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
 
     return p
 
-def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
-              efit_tree=None, remove_edge=False, rf=None):
 
+def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
+          efit_tree=None, remove_edge=False, rf=None):
     """Returns a profile representing electron density
     from the Reciprocating Langmuir probes.
     It computes correctly the
@@ -1437,17 +1440,17 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     t = []
     R = []
     ne = []
-    for Plunge in ('1','2'):
+    for Plunge in ('1', '2'):
         try:
-            t=scipy.append(t,rf.getNode(r'\results::fp:t_' + Plunge).getData().data())
-            R=scipy.append(R,rf.getNode(r'\results::fp:r_' + Plunge).getData().data())
-            ne=scipy.append(ne,rf.getNode(r'\results::fp:ne_' + Plunge).getData().data() / 1e20)
+            t = scipy.append(t, rf.getNode(r'\results::fp:t_' + Plunge).getData().data())
+            R = scipy.append(R, rf.getNode(r'\results::fp:r_' + Plunge).getData().data())
+            ne = scipy.append(ne, rf.getNode(r'\results::fp:ne_' + Plunge).getData().data() / 1e20)
         except:
-            warnings.warn('Plunge ' + Plunge + ' for shot %5i' % shot +' not found')
+            warnings.warn('Plunge ' + Plunge + ' for shot %5i' % shot + ' not found')
             pass
 
     # for each time and R convert into Rmid
-    Rmid =[]
+    Rmid = []
     for _t, _r in zip(t, R):
         Rmid.append(p.efit_tree.rz2rmid(_r, 0, _t))
     Rmid = scipy.asarray(Rmid)
@@ -1457,7 +1460,7 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     ne = ne.ravel()
     R = R.ravel()
     # channels = channel_grid.ravel()
-#    t = t_grid.ravel()
+    #    t = t_grid.ravel()
 
     X = scipy.vstack((t, R)).T
 
@@ -1465,7 +1468,7 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     p.abscissa = 'Rmid'
 
     p.add_data(X, ne, err_y=0.1 * scipy.absolute(ne))
-    
+
     # Remove flagged points:
     p.remove_points(p.y == 0)
     if t_min is not None:
@@ -1481,7 +1484,7 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     return p
 
 
-def ne(shot, include=['TS', 'RCP'],  **kwargs):
+def ne(shot, include=['TS', 'RCP'], **kwargs):
     """Returns a profile representing electron density from both the
     Thomson scattering and RCP
 
@@ -1493,14 +1496,10 @@ def ne(shot, include=['TS', 'RCP'],  **kwargs):
         The data sources to include. Valid options are:
 
             ======= ========================
-            CTS     Core Thomson scattering
-            ETS     Edge Thomson scattering
-            TCI     Two color interferometer
-            reflect SOL reflectometer
+            TS      Thomson scattering
+            RCP     Reciprocating Langmuir Probe
             ======= ========================
 
-        The default is to include all TS data sources, but not TCI or the
-        reflectometer.
     **kwargs
         All remaining parameters are passed to the individual loading methods.
     """
@@ -1524,8 +1523,8 @@ def ne(shot, include=['TS', 'RCP'],  **kwargs):
     return p
 
 
-def TeCTS(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
-          efit_tree=None, remove_edge=False, remove_zeros=True, Z_shift=0.0):
+def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
+         efit_tree=None, remove_edge=False, remove_zeros=True):
     """Returns a profile representing electron temperature from the core Thomson scattering system.
 
     Parameters
@@ -1538,9 +1537,6 @@ def TeCTS(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
         The smallest time to include. Default is None (no lower bound).
     t_max : float, optional
         The largest time to include. Default is None (no upper bound).
-    electrons : MDSplus.Tree, optional
-        An MDSplus.Tree object open to the electrons tree of the correct shot.
-        The shot of the given tree is not checked! Default is None (open tree).
     efit_tree : eqtools.CModEFITTree, optional
         An eqtools.CModEFITTree object open to the correct shot. The shot of the
         given tree is not checked! Default is None (open tree).
@@ -1551,30 +1547,25 @@ def TeCTS(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
         If True, will remove points that are identically zero. Default is True
         (remove zero points). This was added because clearly bad points aren't
         always flagged with a sentinel value of errorbar.
-    Z_shift: float, optional
-        The shift to apply to the vertical coordinate, sometimes needed to
-        correct EFIT mapping. Default is 0.0.
     """
     p = BivariatePlasmaProfile(X_dim=3,
                                X_units=['s', 'm', 'm'],
                                y_units='keV',
                                X_labels=['$t$', '$R$', '$Z$'],
-                               y_label=r'$T_e$, CTS')
+                               y_label=r'$T_e$, TS')
 
-    if electrons is None:
-        electrons = MDSplus.Tree('electrons', shot)
-
+    electrons = MDSplus.Tree('tcv_shot', shot)
     N_Te_TS = electrons.getNode(
-        r'\electrons::top.yag_new.results.profiles:Te_rz')
+        r'\results::thomson:te')
 
-    t_Te_TS = N_Te_TS.dim_of().data()
+    t_Te_TS = electrons.getNode(r'\results::thomson:times').data()
     Te_TS = N_Te_TS.data()
-    dev_Te_TS = electrons.getNode(r'yag_new.results.profiles:Te_err').data()
+    dev_Te_TS = electrons.getNode(r'\results::thomson:te:error_bar').data()
+    dev_Te_TS[dev_Te_TS < 0] = 0
 
     Z_CTS = electrons.getNode(
-        r'yag_new.results.profiles:z_sorted').data() + Z_shift
-    R_CTS = (electrons.getNode(r'yag.results.param:r').data() *
-             scipy.ones_like(Z_CTS))
+        r'\diagz::thomson_set_up:vertical_pos').data()
+    R_CTS = electrons.getNode(r'\diagz::thomson_set_up:radial_pos').data()
     channels = range(0, len(Z_CTS))
 
     t_grid, Z_grid = scipy.meshgrid(t_Te_TS, Z_CTS)
@@ -1591,10 +1582,7 @@ def TeCTS(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
     X = scipy.hstack((t.T, R.T, Z.T))
 
     p.shot = shot
-    if efit_tree is None:
-        p.efit_tree = eqtools.CModEFITTree(shot)
-    else:
-        p.efit_tree = efit_tree
+    p.efit_tree = eqtools.TCVLIUQETree(shot)
     p.abscissa = 'RZ'
 
     p.add_data(X, Te, err_y=err_Te, channels={1: channels, 2: channels})
@@ -1604,7 +1592,7 @@ def TeCTS(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
         scipy.isinf(p.err_y) |
         (p.err_y == 0.0) |
         (p.err_y == 1.0) |
-        ((p.y == 0.0) & remove_zeros) |
+        ((p.y == -1) & remove_zeros) |
         scipy.isnan(p.y) |
         scipy.isinf(p.y)
     )
@@ -1620,210 +1608,12 @@ def TeCTS(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
     return p
 
 
-def TeETS(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
-          efit_tree=None, remove_edge=False, remove_zeros=False, Z_shift=0.0):
-    """Returns a profile representing electron temperature from the edge Thomson scattering system.
-
-    Parameters
-    ----------
-    shot : int
-        The shot number to load.
-    abscissa : str, optional
-        The abscissa to use for the data. The default is 'RZ'.
-    t_min : float, optional
-        The smallest time to include. Default is None (no lower bound).
-    t_max : float, optional
-        The largest time to include. Default is None (no upper bound).
-    electrons : MDSplus.Tree, optional
-        An MDSplus.Tree object open to the electrons tree of the correct shot.
-        The shot of the given tree is not checked! Default is None (open tree).
-    efit_tree : eqtools.CModEFITTree, optional
-        An eqtools.CModEFITTree object open to the correct shot. The shot of the
-        given tree is not checked! Default is None (open tree).
-    remove_edge : bool, optional
-        If True, will remove points that are outside the LCFS. It will convert
-        the abscissa to psinorm if necessary. Default is False (keep edge).
-    remove_zeros: bool, optional
-        If True, will remove points that are identically zero. Default is False
-        (keep zero points). This was added because clearly bad points aren't
-        always flagged with a sentinel value of errorbar.
-    Z_shift: float, optional
-        The shift to apply to the vertical coordinate, sometimes needed to
-        correct EFIT mapping. Default is 0.0.
-    """
-    p = BivariatePlasmaProfile(X_dim=3,
-                               X_units=['s', 'm', 'm'],
-                               y_units='keV',
-                               X_labels=['$t$', '$R$', '$Z$'],
-                               y_label=r'$T_e$, ETS')
-
-    if electrons is None:
-        electrons = MDSplus.Tree('electrons', shot)
-
-    N_Te_TS = electrons.getNode(r'yag_edgets.results:te')
-
-    t_Te_TS = N_Te_TS.dim_of().data()
-    Te_TS = N_Te_TS.data() / 1e3
-    dev_Te_TS = electrons.getNode(r'yag_edgets.results:te:error').data() / 1e3
-
-    Z_CTS = electrons.getNode(r'yag_edgets.data:fiber_z').data() + Z_shift
-    R_CTS = (electrons.getNode(r'yag.results.param:r').data() *
-             scipy.ones_like(Z_CTS))
-    channels = range(0, len(Z_CTS))
-
-    t_grid, Z_grid = scipy.meshgrid(t_Te_TS, Z_CTS)
-    t_grid, R_grid = scipy.meshgrid(t_Te_TS, R_CTS)
-    t_grid, channel_grid = scipy.meshgrid(t_Te_TS, channels)
-
-    Te = Te_TS.flatten()
-    err_Te = dev_Te_TS.flatten()
-    Z = scipy.atleast_2d(Z_grid.flatten())
-    R = scipy.atleast_2d(R_grid.flatten())
-    channels = channel_grid.flatten()
-    t = scipy.atleast_2d(t_grid.flatten())
-
-    X = scipy.hstack((t.T, R.T, Z.T))
-
-    p.shot = shot
-    if efit_tree is None:
-        p.efit_tree = eqtools.CModEFITTree(shot)
-    else:
-        p.efit_tree = efit_tree
-    p.abscissa = 'RZ'
-
-    p.add_data(X, Te, err_y=err_Te, channels={1: channels, 2: channels})
-    # Remove flagged points:
-    try:
-        pm = electrons.getNode(r'yag_edgets.data:pointmask').data().flatten()
-    except BaseException:
-        pm = scipy.ones_like(p.y)
-    p.remove_points(
-        (pm == 0) |
-        scipy.isnan(p.err_y) |
-        scipy.isinf(p.err_y) |
-        (p.err_y == 0.0) |
-        (p.err_y == 1.0) |
-        (p.err_y == 0.5) |
-        ((p.y == 0.0) & remove_zeros) |
-        # This seems to be an old way of flagging. Could be risky...
-        ((p.y == 0.0) & (p.err_y == 0.029999999329447746)) |
-        scipy.isnan(p.y) |
-        scipy.isinf(p.y)
-    )
-
-    if t_min is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
-    if t_max is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
-    p.convert_abscissa(abscissa)
-
-    if remove_edge:
-        p.remove_edge_points()
-
-    return p
-
-
-def TeFRCECE(shot, rate='s', cutoff=0.15, abscissa='Rmid', t_min=None, t_max=None,
-             electrons=None, efit_tree=None, remove_edge=False):
-    """Returns a profile representing electron temperature from the FRCECE system.
-
-    Parameters
-    ----------
-    shot : int
-        The shot number to load.
-    rate : {'s', 'f'}, optional
-        Which timebase to use -- the fast or slow data. Default is 's' (slow).
-    cutoff : float, optional
-        The cutoff value for eliminating cut-off points. All points with values
-        less than this will be discarded. Default is 0.15.
-    abscissa : str, optional
-        The abscissa to use for the data. The default is 'Rmid'.
-    t_min : float, optional
-        The smallest time to include. Default is None (no lower bound).
-    t_max : float, optional
-        The largest time to include. Default is None (no upper bound).
-    electrons : MDSplus.Tree, optional
-        An MDSplus.Tree object open to the electrons tree of the correct shot.
-        The shot of the given tree is not checked! Default is None (open tree).
-    efit_tree : eqtools.CModEFITTree, optional
-        An eqtools.CModEFITTree object open to the correct shot. The shot of the
-        given tree is not checked! Default is None (open tree).
-    remove_edge : bool, optional
-        If True, will remove points that are outside the LCFS. It will convert
-        the abscissa to psinorm if necessary. Default is False (keep edge).
-    """
-    p = BivariatePlasmaProfile(
-        X_dim=2,
-        X_units=['s', 'm'],
-        y_units='keV',
-        X_labels=['$t$', r'$R_{mid}$'],
-        y_label=r'$T_e$, FRCECE (%s)' % (rate,),
-        weightable=False
-    )
-
-    if electrons is None:
-        electrons = MDSplus.Tree('electrons', shot)
-    if efit_tree is None:
-        p.efit_tree = eqtools.CModEFITTree(shot)
-    else:
-        p.efit_tree = efit_tree
-
-    Te_FRC = []
-    R_mid_FRC = []
-    t_FRC = []
-    channels = []
-    for k in xrange(0, 32):
-        N = electrons.getNode(r'frcece.data.ece%s%02d' % (rate, k + 1,))
-        Te = N.data()
-        Te_FRC.extend(Te)
-        # There appears to consistently be an extra point. Lacking a better
-        # explanation, I will knock off the last point:
-        t = N.dim_of().data()[:len(Te)]
-        t_FRC.extend(t)
-
-        N_R = electrons.getNode(r'frcece.data.rmid_%02d' % (k + 1,))
-        R_mid = N_R.data().flatten()
-        t_R_FRC = N_R.dim_of().data()
-        R_mid_FRC.extend(
-            scipy.interpolate.InterpolatedUnivariateSpline(t_R_FRC, R_mid)(t)
-        )
-
-        channels.extend([k + 1] * len(Te))
-
-    Te = scipy.asarray(Te_FRC)
-    t = scipy.atleast_2d(scipy.asarray(t_FRC))
-    R_mid = scipy.atleast_2d(scipy.asarray(R_mid_FRC))
-
-    X = scipy.hstack((t.T, R_mid.T))
-
-    p.shot = shot
-    p.abscissa = 'Rmid'
-
-    p.add_data(
-        X,
-        Te,
-        channels={
-            1: scipy.asarray(channels)},
-        err_y=0.1 *
-        scipy.absolute(Te))
-    # Remove flagged points:
-    # I think these are cut off channels, but I am not sure...
-    p.remove_points(p.y < cutoff)
-    if t_min is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
-    if t_max is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
-    p.convert_abscissa(abscissa)
-
-    if remove_edge:
-        p.remove_edge_points()
-
-    return p
-
-
-def TeGPC2(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
-           efit_tree=None, remove_edge=False):
-    """Returns a profile representing electron temperature from the GPC2 system.
+def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
+          remove_edge=False, rf=None):
+    """Returns a profile representing electron Temperature
+    from the Reciprocating Langmuir probes.
+    It computes correctly the
+    strokes according to the t_min and t_max given
 
     Parameters
     ----------
@@ -1835,12 +1625,6 @@ def TeGPC2(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
         The smallest time to include. Default is None (no lower bound).
     t_max : float, optional
         The largest time to include. Default is None (no upper bound).
-    electrons : MDSplus.Tree, optional
-        An MDSplus.Tree object open to the electrons tree of the correct shot.
-        The shot of the given tree is not checked! Default is None (open tree).
-    efit_tree : eqtools.CModEFITTree, optional
-        An eqtools.CModEFITTree object open to the correct shot. The shot of the
-        given tree is not checked! Default is None (open tree).
     remove_edge : bool, optional
         If True, will remove points that are outside the LCFS. It will convert
         the abscissa to psinorm if necessary. Default is False (keep edge).
@@ -1848,50 +1632,43 @@ def TeGPC2(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     p = BivariatePlasmaProfile(
         X_dim=2,
         X_units=['s', 'm'],
-        y_units='keV',
+        y_units='eV',
         X_labels=['$t$', r'$R_{mid}$'],
-        y_label=r'$T_e$, GPC2',
+        y_label=r'$T_e$, RCP',
         weightable=False
     )
-    if electrons is None:
-        electrons = MDSplus.Tree('electrons', shot)
-    if efit_tree is None:
-        p.efit_tree = eqtools.CModEFITTree(shot)
-    else:
-        p.efit_tree = efit_tree
+    rf = MDSplus.Tree('tcv_shot', shot)
+    p.efit_tree = eqtools.TCVLIUQETree(shot)
 
-    N_GPC2 = electrons.getNode('gpc_2.results.gpc2_te')
-    Te_GPC2 = N_GPC2.data()
-    t_GPC2 = N_GPC2.dim_of().data()
+    t = []
+    R = []
+    ne = []
+    for Plunge in ('1', '2'):
+        try:
+            t = scipy.append(t, rf.getNode(r'\results::fp:t_' + Plunge).getData().data())
+            R = scipy.append(R, rf.getNode(r'\results::fp:r_' + Plunge).getData().data())
+            ne = scipy.append(ne, rf.getNode(r'\results::fp:te_' + Plunge).getData().data() / 1e20)
+        except:
+            warnings.warn('Plunge ' + Plunge + ' for shot %5i' % shot + ' not found')
+            pass
 
-    N_R = electrons.getNode('gpc_2.results.radii')
-    R_mid_GPC2 = N_R.data()
-    t_R_GPC2 = N_R.dim_of().data()
+    # for each time and R convert into Rmid
+    Rmid = []
+    for _t, _r in zip(t, R):
+        Rmid.append(p.efit_tree.rz2rmid(_r, 0, _t))
+    Rmid = scipy.asarray(Rmid)
 
-    channels = range(0, Te_GPC2.shape[0])
-
-    t_grid, channel_grid = scipy.meshgrid(t_GPC2, channels)
-
-    R_GPC2 = scipy.zeros_like(t_grid)
-    for k in channels:
-        R_GPC2[k, :] = scipy.interpolate.InterpolatedUnivariateSpline(
-            t_R_GPC2, R_mid_GPC2[k, :]
-        )(t_GPC2)
-
-    Te = Te_GPC2.flatten()
-    R = scipy.atleast_2d(R_GPC2.flatten())
-    channels = channel_grid.flatten()
-    t = scipy.atleast_2d(t_grid.flatten())
-
-    X = scipy.hstack((t.T, R.T))
+    ne = ne.ravel()
+    R = R.ravel()
+    X = scipy.vstack((t, R)).T
 
     p.shot = shot
     p.abscissa = 'Rmid'
 
-    p.add_data(X, Te, channels={1: channels}, err_y=0.1 * scipy.absolute(Te))
+    p.add_data(X, ne, err_y=0.1 * scipy.absolute(ne))
 
     # Remove flagged points:
-    p.remove_points(p.y <= 0)
+    p.remove_points(p.y == 0)
     if t_min is not None:
         p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
     if t_max is not None:
@@ -1905,185 +1682,9 @@ def TeGPC2(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     return p
 
 
-def TeGPC(shot, cutoff=0.15, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
-          efit_tree=None, remove_edge=False):
-    """Returns a profile representing electron temperature from the GPC system.
-
-    Parameters
-    ----------
-    shot : int
-        The shot number to load.
-    cutoff : float, optional
-        The cutoff value for eliminating cut-off points. All points with values
-        less than this will be discarded. Default is 0.15.
-    abscissa : str, optional
-        The abscissa to use for the data. The default is 'Rmid'.
-    t_min : float, optional
-        The smallest time to include. Default is None (no lower bound).
-    t_max : float, optional
-        The largest time to include. Default is None (no upper bound).
-    electrons : MDSplus.Tree, optional
-        An MDSplus.Tree object open to the electrons tree of the correct shot.
-        The shot of the given tree is not checked! Default is None (open tree).
-    efit_tree : eqtools.CModEFITTree, optional
-        An eqtools.CModEFITTree object open to the correct shot. The shot of the
-        given tree is not checked! Default is None (open tree).
-    remove_edge : bool, optional
-        If True, will remove points that are outside the LCFS. It will convert
-        the abscissa to psinorm if necessary. Default is False (keep edge).
-    """
-    p = BivariatePlasmaProfile(
-        X_dim=2,
-        X_units=['s', 'm'],
-        y_units='keV',
-        X_labels=['$t$', r'$R_{mid}$'],
-        y_label=r'$T_e$, GPC',
-        weightable=False
-    )
-    if electrons is None:
-        electrons = MDSplus.Tree('electrons', shot)
-    if efit_tree is None:
-        p.efit_tree = eqtools.CModEFITTree(shot)
-    else:
-        p.efit_tree = efit_tree
-
-    Te_GPC = []
-    R_mid_GPC = []
-    t_GPC = []
-    channels = []
-    for k in xrange(0, 9):
-        N = electrons.getNode(r'ece.gpc_results.te.te%d' % (k + 1,))
-        Te = N.data()
-        Te_GPC.extend(Te)
-        t = N.dim_of().data()
-        t_GPC.extend(t)
-
-        N_R = electrons.getNode(r'ece.gpc_results.rad.r%d' % (k + 1,))
-        R_mid = N_R.data()
-        t_R_mid = N_R.dim_of().data()
-        R_mid_GPC.extend(
-            scipy.interpolate.InterpolatedUnivariateSpline(t_R_mid, R_mid)(t)
-        )
-
-        channels.extend([k + 1] * len(Te))
-
-    Te = scipy.asarray(Te_GPC)
-    t = scipy.atleast_2d(scipy.asarray(t_GPC))
-    R_mid = scipy.atleast_2d(scipy.asarray(R_mid_GPC))
-
-    X = scipy.hstack((t.T, R_mid.T))
-
-    p.shot = shot
-    p.abscissa = 'Rmid'
-
-    p.add_data(
-        X,
-        Te,
-        channels={
-            1: scipy.asarray(channels)},
-        err_y=0.1 *
-        scipy.absolute(Te))
-
-    # Remove flagged points:
-    # I think these are cut off channels, but I am not sure...
-    p.remove_points(p.y < cutoff)
-    if t_min is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
-    if t_max is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
-
-    p.convert_abscissa(abscissa)
-
-    if remove_edge:
-        p.remove_edge_points()
-
-    return p
-
-
-def TeMic(shot, cutoff=0.15, abscissa='Rmid', t_min=None, t_max=None,
-          electrons=None, efit_tree=None, remove_edge=False, remove_zeros=True):
-    """Returns a profile representing electron temperature from the Michelson interferometer.
-
-    Parameters
-    ----------
-    shot : int
-        The shot number to load.
-    abscissa : str, optional
-        The abscissa to use for the data. The default is 'Rmid'.
-    t_min : float, optional
-        The smallest time to include. Default is None (no lower bound).
-    t_max : float, optional
-        The largest time to include. Default is None (no upper bound).
-    electrons : MDSplus.Tree, optional
-        An MDSplus.Tree object open to the electrons tree of the correct shot.
-        The shot of the given tree is not checked! Default is None (open tree).
-    efit_tree : eqtools.CModEFITTree, optional
-        An eqtools.CModEFITTree object open to the correct shot. The shot of the
-        given tree is not checked! Default is None (open tree).
-    remove_edge : bool, optional
-        If True, will remove points that are outside the LCFS. It will convert
-        the abscissa to psinorm if necessary. Default is False (keep edge).
-    """
-    p = BivariatePlasmaProfile(
-        X_dim=2,
-        X_units=['s', 'm'],
-        y_units='keV',
-        X_labels=['$t$', r'$R_{mid}$'],
-        y_label=r'$T_e$, Mic',
-        weightable=False
-    )
-
-    if electrons is None:
-        electrons = MDSplus.Tree('electrons', shot)
-
-    N_Te = electrons.getNode(r'\electrons::top.ece.results.ece_te')
-
-    t_Te = N_Te.dim_of(idx=1).data()
-    Te = N_Te.data() / 1e3
-    Rmid_Te = N_Te.dim_of(idx=0).data()
-    channels = range(0, len(Rmid_Te))
-
-    dev_Te = 0.1 * scipy.absolute(Te)
-
-    Rmid_grid, t_grid = scipy.meshgrid(Rmid_Te, t_Te)
-    channel_grid, t_grid = scipy.meshgrid(channels, t_Te)
-
-    Te = Te.flatten()
-    err_Te = dev_Te.flatten()
-    Rmid = scipy.atleast_2d(Rmid_grid.flatten())
-    t = scipy.atleast_2d(t_grid.flatten())
-    channels = channel_grid.flatten()
-
-    X = scipy.hstack((t.T, Rmid.T))
-
-    p.shot = shot
-    if efit_tree is None:
-        p.efit_tree = eqtools.CModEFITTree(shot)
-    else:
-        p.efit_tree = efit_tree
-    p.abscissa = 'Rmid'
-
-    p.add_data(X, Te, err_y=err_Te, channels={1: channels})
-    # Remove flagged points:
-    p.remove_points(scipy.isnan(p.err_y) | scipy.isinf(p.err_y))
-    p.remove_points(p.y < cutoff)
-    if remove_zeros:
-        p.remove_points(p.y == 0.0)
-    if t_min is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
-    if t_max is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
-    p.convert_abscissa(abscissa)
-
-    if remove_edge:
-        p.remove_edge_points()
-
-    return p
-
-
-def Te(shot, include=['CTS', 'ETS', 'FRCECE', 'GPC2', 'GPC', 'Mic'], FRCECE_rate='s',
-       FRCECE_cutoff=0.15, GPC_cutoff=0.15, remove_ECE_edge=True, **kwargs):
-    """Returns a profile representing electron temperature from the Thomson scattering and ECE systems.
+def Te(shot, include=['TS', 'RCP'], **kwargs):
+    """Returns a profile representing electron temperature
+    from the Thomson scattering and Reciprocating Langmuir Probe.
 
     Parameters
     ----------
@@ -2091,60 +1692,19 @@ def Te(shot, include=['CTS', 'ETS', 'FRCECE', 'GPC2', 'GPC', 'Mic'], FRCECE_rate
         The shot number to load.
     include : list of str, optional
         The data sources to include. Valid options are:
-
-            ====== ===============================
-            CTS    Core Thomson scattering
-            ETS    Edge Thomson scattering
-            FRCECE FRC electron cyclotron emission
-            GPC    Grating polychromator
-            GPC2   Grating polychromator 2
-            ====== ===============================
-
-        The default is to include all data sources.
-    FRCECE_rate : {'s', 'f'}, optional
-        Which timebase to use for FRCECE -- the fast or slow data. Default is
-        's' (slow).
-    FRCECE_cutoff : float, optional
-        The cutoff value for eliminating cut-off points from FRCECE. All points
-        with values less than this will be discarded. Default is 0.15.
-    GPC_cutoff : float, optional
-        The cutoff value for eliminating cut-off points from GPC. All points
-        with values less than this will be discarded. Default is 0.15.
-    remove_ECE_edge : bool, optional
-        If True, the points outside of the LCFS for the ECE diagnostics will be
-        removed. Note that this overrides remove_edge, if present, in kwargs.
-        Furthermore, this may lead to abscissa being converted to psinorm if an
-        incompatible option was used.
+            ======= ========================
+            TS      Thomson scattering
+            RCP     Reciprocating Langmuir Probe
+            ======= ========================
     **kwargs
         All remaining parameters are passed to the individual loading methods.
     """
-    if 'electrons' not in kwargs:
-        kwargs['electrons'] = MDSplus.Tree('electrons', shot)
-    if 'efit_tree' not in kwargs:
-        kwargs['efit_tree'] = eqtools.CModEFITTree(shot)
     p_list = []
     for system in include:
-        if system == 'CTS':
-            p_list.append(TeCTS(shot, **kwargs))
-        elif system == 'ETS':
-            p_list.append(TeETS(shot, **kwargs))
-        elif system == 'FRCECE':
-            p_list.append(TeFRCECE(shot, rate=FRCECE_rate, cutoff=FRCECE_cutoff,
-                                   **kwargs))
-            if remove_ECE_edge:
-                p_list[-1].remove_edge_points()
-        elif system == 'GPC2':
-            p_list.append(TeGPC2(shot, **kwargs))
-            if remove_ECE_edge:
-                p_list[-1].remove_edge_points()
-        elif system == 'GPC':
-            p_list.append(TeGPC(shot, cutoff=GPC_cutoff, **kwargs))
-            if remove_ECE_edge:
-                p_list[-1].remove_edge_points()
-        elif system == 'Mic':
-            p_list.append(TeMic(shot, cutoff=GPC_cutoff, **kwargs))
-            if remove_ECE_edge:
-                p_list[-1].remove_edge_points()
+        if system == 'TS':
+            p_list.append(TeTS(shot, **kwargs))
+        elif system == 'RCP':
+            p_list.append(TeRCP(shot, **kwargs))
         else:
             raise ValueError("Unknown profile '%s'." % (system,))
 
@@ -2153,14 +1713,6 @@ def Te(shot, include=['CTS', 'ETS', 'FRCECE', 'GPC2', 'GPC', 'Mic'], FRCECE_rate
         p.add_profile(p_other)
 
     return p
-
-
-def TeTS(shot, **kwargs):
-    """Returns a profile representing electron temperature data from the Thomson scattering system.
-
-    Includes both core and edge system.
-    """
-    return Te(shot, include=['CTS', 'ETS'], **kwargs)
 
 
 def emissAX(shot, system, abscissa='Rmid', t_min=None, t_max=None, tree=None,
@@ -2333,7 +1885,7 @@ def read_plasma_csv(*args, **kwargs):
         p.abscissa = metadata['coordinate']
     else:
         if (p.X_dim > 1 and p.X_labels[-2].strip('$ ') == 'R' and
-                p.X_labels[-1].strip('$ ') == 'Z'):
+                    p.X_labels[-1].strip('$ ') == 'Z'):
             p.abscissa = 'RZ'
         else:
             try:
@@ -2379,7 +1931,7 @@ def read_plasma_NetCDF(*args, **kwargs):
         p.abscissa = p.coordinate
     else:
         if (p.X_dim > 1 and p.X_labels[-2].strip('$ ') == 'R' and
-                p.X_labels[-1].strip('$ ') == 'Z'):
+                    p.X_labels[-1].strip('$ ') == 'Z'):
             p.abscissa = 'RZ'
         else:
             try:
