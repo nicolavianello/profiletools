@@ -4724,8 +4724,8 @@ class MCMCResultsFrame(tk.Frame):
                 if i > j:
                     row.append(None)
                 else:
-                    sharey = row[-1] if i > 0 and i < j and j < k else None
-                    sharex = self.axes[-1][i] if j > i and j < k else \
+                    sharey = row[-1] if 0 < i < j and j < k else None
+                    sharex = self.axes[-1][i] if i < j < k else \
                         (row[-1] if i > 0 and j == k else None)
                     gs = gs1[j, i] if j < k else gs2[:, i]
                     row.append(self.f.add_subplot(gs, sharey=sharey, sharex=sharex))
