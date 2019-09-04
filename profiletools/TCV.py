@@ -1510,9 +1510,15 @@ def ne(shot, include=['TS', 'RCP'], **kwargs):
     p_list = []
     for system in include:
         if system == 'TS':
-            p_list.append(neTS(shot, **kwargs))
+            try:
+                p_list.append(neTS(shot, **kwargs))
+            except:
+                warnings.warn('Thomson profiles not found')
         elif system == 'RCP':
-            p_list.append(neRCP(shot, **kwargs))
+            try:
+                p_list.append(neRCP(shot, **kwargs))
+            except:
+                warnings.warn('RCP profile not found')
         else:
             raise ValueError("Unknown profile '%s'." % (system,))
 
@@ -1550,7 +1556,7 @@ def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
     """
     p = BivariatePlasmaProfile(X_dim=3,
                                X_units=['s', 'm', 'm'],
-                               y_units='keV',
+                               y_units='eV',
                                X_labels=['$t$', '$R$', '$Z$'],
                                y_label=r'$T_e$, TS')
 
@@ -1647,7 +1653,7 @@ def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
         try:
             t = scipy.append(t, rf.getNode(r'\results::fp:t_' + Plunge).getData().data())
             R = scipy.append(R, rf.getNode(r'\results::fp:r_' + Plunge).getData().data())
-            ne = scipy.append(ne, rf.getNode(r'\results::fp:te_' + Plunge).getData().data() / 1e20)
+            ne = scipy.append(ne, rf.getNode(r'\results::fp:te_' + Plunge).getData().data())
         except:
             warnings.warn('Plunge ' + Plunge + ' for shot %5i' % shot + ' not found')
             pass
@@ -1699,12 +1705,19 @@ def Te(shot, include=['TS', 'RCP'], **kwargs):
     **kwargs
         All remaining parameters are passed to the individual loading methods.
     """
+
     p_list = []
     for system in include:
         if system == 'TS':
-            p_list.append(TeTS(shot, **kwargs))
+            try:
+                p_list.append(TeTS(shot, **kwargs))
+            except:
+                warnings.warn('Thomson profile not found')
         elif system == 'RCP':
-            p_list.append(TeRCP(shot, **kwargs))
+            try:
+                p_list.append(TeRCP(shot, **kwargs))
+            except:
+                warnings.warn( 'RCP profile not found' )
         else:
             raise ValueError("Unknown profile '%s'." % (system,))
 

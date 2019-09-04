@@ -17,6 +17,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import division
+import sys
+import socket
+# Hackishly augment the path for now:
+hostname = socket.gethostname().lower()
 
 __version__ = '1.1.3'
 PROG_NAME = 'gpfit'
@@ -24,11 +28,18 @@ PROG_NAME = 'gpfit'
 import collections
 
 # Define the systems that can be selected for each signal:
-SYSTEM_OPTIONS = collections.OrderedDict([
-    ('ne', ['CTS', 'ETS', 'TCI', 'reflect']),
-    ('Te', ['CTS', 'ETS', 'GPC', 'GPC2', 'FRCECE', 'Mic']),
-    ('emiss', ['AXA', 'AXJ'])
-])
+if hostname[:3] == 'lac':
+    SYSTEM_OPTIONS = collections.OrderedDict([
+        ('ne', ['TS', 'RCP']),
+        ('Te', ['TS', 'RCP']),
+        ('emiss', ['AXA', 'AXJ'])
+    ])
+else:
+    SYSTEM_OPTIONS = collections.OrderedDict([
+        ('ne', ['CTS', 'ETS', 'TCI', 'reflect']),
+        ('Te', ['CTS', 'ETS', 'GPC', 'GPC2', 'FRCECE', 'Mic']),
+        ('emiss', ['AXA', 'AXJ'])
+    ])
 
 # List of all valid systems:
 valid_systems = set()
@@ -884,10 +895,6 @@ if __name__ == "__main__":
 ### ======================== START OF MAIN PROGRAM ======================== ###
 
 # Set up the GUI:
-import sys
-import socket
-# Hackishly augment the path for now:
-hostname = socket.gethostname().lower() 
 if ('juggernaut' not in hostname and
     'sydney' not in hostname and
     'cosmonaut' not in hostname):
@@ -895,6 +902,7 @@ if ('juggernaut' not in hostname and
     sys.path.insert(0, "/home/markchil/codes/profiletools")
     sys.path.insert(0, "/home/markchil/codes/TRIPPy")
     sys.path.insert(0, "/home/markchil/codes/efit/development/EqTools")
+    sys.path.insert(0, "/home/vianello/pythonlib/submodules/profiletools")
 
 import matplotlib
 matplotlib.use("TkAgg")
