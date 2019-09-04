@@ -18,7 +18,7 @@
 """Provides classes for working with Alcator C-Mod data via MDSplus.
 """
 
-from __future__ import division
+
 
 from .core import Profile, Channel, read_csv, read_NetCDF
 from . import transformations
@@ -51,7 +51,7 @@ _X_label_mapping = {'psinorm': r'$\psi_n$',
                     'sqrtphinorm': r'$\sqrt{\phi_n}$',
                     'sqrtvolnorm': r'$\sqrt{V_n}$',
                     'sqrtr/a': r'$\sqrt{r/a}$'}
-_abscissa_mapping = {y:x for x, y in _X_label_mapping.iteritems()}
+_abscissa_mapping = {y:x for x, y in _X_label_mapping.items()}
 _X_unit_mapping = {'psinorm': '',
                    'phinorm': '',
                    'volnorm': '',
@@ -516,7 +516,7 @@ class BivariatePlasmaProfile(Profile):
                     "will NOT be applied!"
                 )
                 return
-            print("limiter location=%g" % (xa,))
+            print(("limiter location=%g" % (xa,)))
             x_pts = scipy.linspace(xa, xa * expansion, n_pts)
             y = scipy.zeros_like(x_pts)
             self.gp.add_data(x_pts, y, err_y=err_y, n=0)
@@ -755,12 +755,12 @@ class BivariatePlasmaProfile(Profile):
             if compute_2:
                 mean_2 = mean[2 * len(X):]
                 var_2 = var[2 * len(X):]
-            i = range(0, len(X))
-            j = range(len(X), 2 * len(X))
+            i = list(range(0, len(X)))
+            j = list(range(len(X), 2 * len(X)))
             cov_val_grad = scipy.asarray(cov[i, j]).flatten()
             
             if compute_2:
-                k = range(2 * len(X), 3 * len(X))
+                k = list(range(2 * len(X), 3 * len(X)))
                 cov_val_2 = scipy.asarray(cov[i, k]).flatten()
                 cov_grad_2 = scipy.asarray(cov[j, k]).flatten()
             
@@ -798,7 +798,7 @@ class BivariatePlasmaProfile(Profile):
                 if compute_2:
                     dX_droa_2 = scipy.zeros((len(X), len(ok_idxs)))
                 # Loop over time indices:
-                for idx, k in zip(ok_idxs, range(0, len(ok_idxs))):
+                for idx, k in zip(ok_idxs, list(range(0, len(ok_idxs)))):
                     resample_factor = 3
                     roa_grid = scipy.linspace(0, 2, resample_factor * len(self.efit_tree.getRGrid()))
                     
@@ -1259,7 +1259,7 @@ def neCTS(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
     
     Z_CTS = electrons.getNode(r'yag_new.results.profiles:z_sorted').data() + Z_shift
     R_CTS = (electrons.getNode(r'yag.results.param:r').data() * scipy.ones_like(Z_CTS))
-    channels = range(0, len(Z_CTS))
+    channels = list(range(0, len(Z_CTS)))
     
     t_grid, Z_grid = scipy.meshgrid(t_ne_TS, Z_CTS)
     t_grid, R_grid = scipy.meshgrid(t_ne_TS, R_CTS)
@@ -1354,7 +1354,7 @@ def neETS(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
     Z_ETS = electrons.getNode(r'yag_edgets.data:fiber_z').data() + Z_shift
     R_ETS = (electrons.getNode(r'yag.results.param:R').data() *
              scipy.ones_like(Z_ETS))
-    channels = range(0, len(Z_ETS))
+    channels = list(range(0, len(Z_ETS)))
     
     t_grid, Z_grid = scipy.meshgrid(t_ne_ETS, Z_ETS)
     t_grid, R_grid = scipy.meshgrid(t_ne_ETS, R_ETS)
@@ -1611,7 +1611,7 @@ def neTCI_old(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
     weights *= (Z.max() - Z.min()) / (2 * (len(Z) - 1))
     
     mask = None
-    for i, r in zip(range(0, len(R)), R):
+    for i, r in zip(list(range(0, len(R))), R):
         N_NL = electrons.getNode(r'tci.results:nl_%02d' % (i + 1,))
         ne = N_NL.data()
         t_ne = N_NL.dim_of().data()
@@ -1694,11 +1694,11 @@ def neReflect(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     ne = rf.getNode(r'\rf::top.reflect:result:density').getData().data() / 1e20
     
     try:
-        print("SOL reflectometer reliability=%d" % (rf.getNode(r'\rf::top.reflect:result:reliability').data(),))
+        print(("SOL reflectometer reliability=%d" % (rf.getNode(r'\rf::top.reflect:result:reliability').data(),)))
     except:
         print("Unable to fetch reflectometer reliability!")
     
-    channels = range(0, ne.shape[1])
+    channels = list(range(0, ne.shape[1]))
 
     channel_grid, t_grid = scipy.meshgrid(channels, t)
 
@@ -1837,7 +1837,7 @@ def TeCTS(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
     Z_CTS = electrons.getNode(r'yag_new.results.profiles:z_sorted').data() + Z_shift
     R_CTS = (electrons.getNode(r'yag.results.param:r').data() *
              scipy.ones_like(Z_CTS))
-    channels = range(0, len(Z_CTS))
+    channels = list(range(0, len(Z_CTS)))
     
     t_grid, Z_grid = scipy.meshgrid(t_Te_TS, Z_CTS)
     t_grid, R_grid = scipy.meshgrid(t_Te_TS, R_CTS)
@@ -1930,7 +1930,7 @@ def TeETS(shot, abscissa='RZ', t_min=None, t_max=None, electrons=None,
     Z_CTS = electrons.getNode(r'yag_edgets.data:fiber_z').data() + Z_shift
     R_CTS = (electrons.getNode(r'yag.results.param:r').data() *
              scipy.ones_like(Z_CTS))
-    channels = range(0, len(Z_CTS))
+    channels = list(range(0, len(Z_CTS)))
     
     t_grid, Z_grid = scipy.meshgrid(t_Te_TS, Z_CTS)
     t_grid, R_grid = scipy.meshgrid(t_Te_TS, R_CTS)
@@ -2031,7 +2031,7 @@ def TeFRCECE(shot, rate='s', cutoff=0.15, abscissa='Rmid', t_min=None, t_max=Non
     R_mid_FRC = []
     t_FRC = []
     channels = []
-    for k in xrange(0, 32):
+    for k in range(0, 32):
         N = electrons.getNode(r'frcece.data.ece%s%02d' % (rate, k + 1,))
         Te = N.data()
         Te_FRC.extend(Te)
@@ -2120,7 +2120,7 @@ def TeGPC2(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     R_mid_GPC2 = N_R.data()
     t_R_GPC2 = N_R.dim_of().data()
     
-    channels = range(0, Te_GPC2.shape[0])
+    channels = list(range(0, Te_GPC2.shape[0]))
 
     t_grid, channel_grid = scipy.meshgrid(t_GPC2, channels)
 
@@ -2202,7 +2202,7 @@ def TeGPC(shot, cutoff=0.15, abscissa='Rmid', t_min=None, t_max=None, electrons=
     R_mid_GPC = []
     t_GPC = []
     channels = []
-    for k in xrange(0, 9):
+    for k in range(0, 9):
         N = electrons.getNode(r'ece.gpc_results.te.te%d' % (k + 1,))
         Te = N.data()
         Te_GPC.extend(Te)
@@ -2285,7 +2285,7 @@ def TeMic(shot, cutoff=0.15, abscissa='Rmid', t_min=None, t_max=None,
     t_Te = N_Te.dim_of(idx=1).data()
     Te = N_Te.data() / 1e3
     Rmid_Te = N_Te.dim_of(idx=0).data()
-    channels = range(0, len(Rmid_Te))
+    channels = list(range(0, len(Rmid_Te)))
     
     dev_Te = 0.1 * scipy.absolute(Te)
     
@@ -2459,7 +2459,7 @@ def emissAX(shot, system, abscissa='Rmid', t_min=None, t_max=None, tree=None,
         err_R_mid = scipy.zeros_like(emiss)
     
     t_grid = scipy.tile(t, (emiss.shape[1], 1)).T
-    channels = scipy.tile(range(0, emiss.shape[1]), (emiss.shape[0], 1))
+    channels = scipy.tile(list(range(0, emiss.shape[1])), (emiss.shape[0], 1))
     
     X = scipy.vstack((t_grid.ravel(), R_mid.ravel())).T
     err_X = scipy.zeros_like(X)

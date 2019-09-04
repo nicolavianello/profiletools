@@ -57,7 +57,7 @@ _X_label_mapping = {'psinorm': r'$\psi_n$',
                     'sqrtphinorm': r'$\sqrt{\phi_n}$',
                     'sqrtvolnorm': r'$\sqrt{V_n}$',
                     'sqrtr/a': r'$\sqrt{r/a}$'}
-_abscissa_mapping = {y: x for x, y in _X_label_mapping.iteritems()}
+_abscissa_mapping = {y: x for x, y in _X_label_mapping.items()}
 _X_unit_mapping = {'psinorm': '',
                    'phinorm': '',
                    'volnorm': '',
@@ -84,7 +84,7 @@ class BivariatePlasmaProfile(Profile):
         store a :py:class:`BivariatePlasmaProfile` in a pickle file, you must
         delete the EFIT tree.
         """
-        self.efit_tree = eqtools.TCVLIUQETree(self.shot)
+        self.efit_tree = eqtools.TCVLIUQEMATTree(self.shot)
 
     def convert_abscissa(self, new_abscissa, drop_nan=True, ddof=1):
         """Convert the internal representation of the abscissa to new coordinates.
@@ -1363,7 +1363,7 @@ def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
     X = scipy.hstack((t.T, R.T, Z.T))
 
     p.shot = shot
-    p.efit_tree = eqtools.TCVLIUQETree(shot)
+    p.efit_tree = eqtools.TCVLIUQEMATTree(shot)
     p.abscissa = 'RZ'
 
     p.add_data(X, ne, err_y=err_ne, channels={1: channels, 2: channels})
@@ -1433,7 +1433,7 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     if rf is None:
         rf = MDSplus.Tree('tcv_shot', shot)
     if efit_tree is None:
-        p.efit_tree = eqtools.TCVLIUQETree(shot)
+        p.efit_tree = eqtools.TCVLIUQEMATTree(shot)
     else:
         p.efit_tree = efit_tree
 
@@ -1588,7 +1588,7 @@ def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
     X = scipy.hstack((t.T, R.T, Z.T))
 
     p.shot = shot
-    p.efit_tree = eqtools.TCVLIUQETree(shot)
+    p.efit_tree = eqtools.TCVLIUQEMATTree(shot)
     p.abscissa = 'RZ'
 
     p.add_data(X, Te, err_y=err_Te, channels={1: channels, 2: channels})
@@ -1644,7 +1644,7 @@ def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
         weightable=False
     )
     rf = MDSplus.Tree('tcv_shot', shot)
-    p.efit_tree = eqtools.TCVLIUQETree(shot)
+    p.efit_tree = eqtools.TCVLIUQEMATTree(shot)
 
     t = []
     R = []
@@ -1764,7 +1764,7 @@ def emissAX(shot, system, abscissa='Rmid', t_min=None, t_max=None, tree=None,
     if tree is None:
         tree = MDSplus.Tree('cmod', shot)
     if efit_tree is None:
-        p.efit_tree = eqtools.CModEFITTree(shot)
+        p.efit_tree = eqtools.TCVLIUQEMATTree(shot)
     else:
         p.efit_tree = efit_tree
 
@@ -1836,7 +1836,7 @@ def emiss(shot, include=['AXA', 'AXJ'], **kwargs):
     if 'tree' not in kwargs:
         kwargs['tree'] = MDSplus.Tree('cmod', shot)
     if 'efit_tree' not in kwargs:
-        kwargs['efit_tree'] = eqtools.CModEFITTree(shot)
+        kwargs['efit_tree'] = eqtools.TCVLIUQEMATTree(shot)
     p_list = []
     for system in include:
         if system == 'AXA':
@@ -1887,7 +1887,7 @@ def read_plasma_csv(*args, **kwargs):
     metadata = dict([l.split(None, 1) for l in p.metadata])
     if 'shot' in metadata:
         p.shot = int(metadata['shot'])
-        p.efit_tree = eqtools.CModEFITTree(p.shot)
+        p.efit_tree = eqtools.TCVLIUQEMATTree(p.shot)
     if 'times' in metadata:
         p.times = [float(t) for t in metadata['times'].split(',')]
     if 't_max' in metadata:
@@ -1939,7 +1939,7 @@ def read_plasma_NetCDF(*args, **kwargs):
     p = read_NetCDF(*args, metadata=metadata, **kwargs)
     p.__class__ = BivariatePlasmaProfile
     if hasattr(p, 'shot'):
-        p.efit_tree = eqtools.CModEFITTree(p.shot)
+        p.efit_tree = eqtools.TCVLIUQEMATTree(p.shot)
     if hasattr(p, 'coordinate'):
         p.abscissa = p.coordinate
     else:
