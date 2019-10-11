@@ -42,6 +42,7 @@ import scipy.interpolate
 import scipy.stats
 import gptools
 import matplotlib.pyplot as plt
+import numpy as np
 
 try:
     import TRIPPy
@@ -1301,7 +1302,8 @@ class BivariatePlasmaProfile(Profile):
 
 
 def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
-         efit_tree=None, remove_edge=False, remove_zeros=True):
+         efit_tree=None, remove_edge=False, remove_zeros=True,
+         remove_divertor=False, rho_threshold=1):
     """Returns a profile representing electron density
        from the core Thomson scattering system.
 
@@ -1326,6 +1328,8 @@ def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
         If True, will remove points that are identically zero. Default is True
         (remove zero points). This was added because clearly bad points aren't
         always flagged with a sentinel value of errorbar.
+    remove_divertor: bool, optional
+        If True will remove points in the divertor chamber. Useful to then remap upstream
     """
     p = BivariatePlasmaProfile(X_dim=3,
                                X_units=['s', 'm', 'm'],
@@ -1334,20 +1338,25 @@ def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
                                y_label=r'$n_e$, TS')
 
     electrons = MDSplus.Tree('tcv_shot', shot)
-    N_ne_TS = electrons.getNode(
-        r'\results::thomson:ne')
-
-    t_ne_TS = electrons.getNode(r'\results::thomson:times').data()
-    ne_TS = N_ne_TS.data() / 1e20
-    dev_ne_TS = electrons.getNode(
-        r'\results::thomson:ne:error_bar').data() / 1e20
-    dev_ne_TS[dev_ne_TS < 0] = 0
-
     Z_CTS = electrons.getNode(
         r'\diagz::thomson_set_up:vertical_pos').data()
     R_CTS = electrons.getNode(
         r'\diagz::thomson_set_up:radial_pos').data()
+    mask = np.ones(Z_CTS.size, dtype='bool')
+    if remove_divertor:
+        mask[np.where(Z_CTS <= -0.4)[0]] = False
+    # now apply the mas to R and Z
+    R_CTS, Z_CTS = R_CTS[mask], Z_CTS[mask]
     channels = range(0, len(Z_CTS))
+    N_ne_TS = electrons.getNode(
+        r'\results::thomson:ne')
+
+    t_ne_TS = electrons.getNode(r'\results::thomson:times').data()
+    ne_TS = N_ne_TS.data()[mask] / 1e20
+    dev_ne_TS = electrons.getNode(
+        r'\results::thomson:ne:error_bar').data()[mask]/ 1e20
+    dev_ne_TS[dev_ne_TS < 0] = 0
+
 
     t_grid, Z_grid = scipy.meshgrid(t_ne_TS, Z_CTS)
     t_grid, R_grid = scipy.meshgrid(t_ne_TS, R_CTS)
@@ -1393,7 +1402,8 @@ def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
 
 
 def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
-          efit_tree=None, remove_edge=False, rf=None):
+          efit_tree=None, remove_edge=False, rf=None, remove_divertor=False,
+          rho_threshold = 1):
     """Returns a profile representing electron density
     from the Reciprocating Langmuir probes.
     It computes correctly the
@@ -1421,6 +1431,11 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     rf : MDSplus.Tree, optional
         An MDSplus.Tree object open to the RF tree of the correct shot.
         The shot of the given tree is not checked! Default is None (open tree).
+    remove_divertor: bool, optional
+        does not do nothing needed in order to ensure we can can the method which combines Te and RCP
+    rho_threshold: by Default the RCP method does not consider the point inside the LCFS. By specifing a
+        different value you can cut the profiles at different rho. useful if the probe profile is messed
+        up close to the LCFS. Need to be specified in rho_poloidal or sqrtpsinorm.
     """
     p = BivariatePlasmaProfile(
         X_dim=2,
@@ -1442,14 +1457,18 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     ne = []
     for Plunge in ('1', '2'):
         try:
-            t = scipy.append(t, rf.getNode(r'\results::fp:t_' + Plunge).getData().data())
-            R = scipy.append(R, rf.getNode(r'\results::fp:r_' + Plunge).getData().data())
-            ne = scipy.append(ne, rf.getNode(r'\results::fp:ne_' + Plunge).getData().data() / 1e20)
+            t = scipy.append(t, rf.getNode(r'\results::fp:t_' + Plunge).data())
+            R = scipy.append(R, rf.getNode(r'\results::fp:r_' + Plunge).data())
+            ne = scipy.append(ne, rf.getNode(r'\results::fp:ne_' + Plunge).data() / 1e20)
         except:
             warnings.warn('Plunge ' + Plunge + ' for shot %5i' % shot + ' not found')
             pass
 
-    # for each time and R convert into Rmid
+    # for each time and R convert into Rmid but we need to restrict
+    # for points inside the limiter
+    rlim, zlim = p.efit_tree.getMachineCrossSection()
+    _mask = scipy.where(scipy.asarray(R) <= rlim.max())[0]
+    t, R, ne = scipy.asarray(t)[_mask], scipy.asarray(R)[_mask], scipy.asarray(ne)[_mask]
     Rmid = []
     for _t, _r in zip(t, R):
         Rmid.append(p.efit_tree.rz2rmid(_r, 0, _t))
@@ -1476,7 +1495,10 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     if t_max is not None:
         p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
 
-    p.convert_abscissa(abscissa)
+    p.convert_abscissa('sqrtpsinorm')
+    _ = p.remove_points(p.X[:, 1] < rho_threshold)
+    if abscissa != 'sqrtpsinorm':
+        p.convert_abscissa(abscissa)
 
     if remove_edge:
         p.remove_edge_points()
@@ -1530,7 +1552,8 @@ def ne(shot, include=['TS', 'RCP'], **kwargs):
 
 
 def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
-         efit_tree=None, remove_edge=False, remove_zeros=True):
+         efit_tree=None, remove_edge=False, remove_zeros=True,
+         remove_divertor=False, rho_threshold=1):
     """Returns a profile representing electron temperature from the core Thomson scattering system.
 
     Parameters
@@ -1553,6 +1576,8 @@ def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
         If True, will remove points that are identically zero. Default is True
         (remove zero points). This was added because clearly bad points aren't
         always flagged with a sentinel value of errorbar.
+    remove_divertor: bool, optional
+        If True will remove points in the divertor chamber. Useful to then remap upstream
     """
     p = BivariatePlasmaProfile(X_dim=3,
                                X_units=['s', 'm', 'm'],
@@ -1561,6 +1586,16 @@ def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
                                y_label=r'$T_e$, TS')
 
     electrons = MDSplus.Tree('tcv_shot', shot)
+    Z_CTS = electrons.getNode(
+        r'\diagz::thomson_set_up:vertical_pos').data()
+    R_CTS = electrons.getNode(r'\diagz::thomson_set_up:radial_pos').data()
+    mask = np.ones(Z_CTS.size, dtype='bool')
+    if remove_divertor:
+        mask[np.where(Z_CTS <= -0.4)[0]] = False
+    # now apply the mas to R and Z
+    R_CTS, Z_CTS = R_CTS[mask], Z_CTS[mask]
+    channels = range(0, len(Z_CTS))
+
     N_Te_TS = electrons.getNode(
         r'\results::thomson:te')
 
@@ -1569,10 +1604,6 @@ def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
     dev_Te_TS = electrons.getNode(r'\results::thomson:te:error_bar').data()
     dev_Te_TS[dev_Te_TS < 0] = 0
 
-    Z_CTS = electrons.getNode(
-        r'\diagz::thomson_set_up:vertical_pos').data()
-    R_CTS = electrons.getNode(r'\diagz::thomson_set_up:radial_pos').data()
-    channels = range(0, len(Z_CTS))
 
     t_grid, Z_grid = scipy.meshgrid(t_Te_TS, Z_CTS)
     t_grid, R_grid = scipy.meshgrid(t_Te_TS, R_CTS)
@@ -1615,7 +1646,8 @@ def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
 
 
 def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
-          remove_edge=False, rf=None):
+          remove_edge=False, rf=None, remove_divertor=False,
+          rho_threshold = 1):
     """Returns a profile representing electron Temperature
     from the Reciprocating Langmuir probes.
     It computes correctly the
@@ -1634,6 +1666,9 @@ def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
     remove_edge : bool, optional
         If True, will remove points that are outside the LCFS. It will convert
         the abscissa to psinorm if necessary. Default is False (keep edge).
+    rho_threshold: by Default the RCP method does not consider the point inside the LCFS. By specifing a
+        different value you can cut the profiles at different rho. useful if the probe profile is messed
+        up close to the LCFS. Need to be specified in rho_poloidal or sqrtpsinorm.
     """
     p = BivariatePlasmaProfile(
         X_dim=2,
@@ -1651,9 +1686,9 @@ def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
     ne = []
     for Plunge in ('1', '2'):
         try:
-            t = scipy.append(t, rf.getNode(r'\results::fp:t_' + Plunge).getData().data())
-            R = scipy.append(R, rf.getNode(r'\results::fp:r_' + Plunge).getData().data())
-            ne = scipy.append(ne, rf.getNode(r'\results::fp:te_' + Plunge).getData().data())
+            t = scipy.append(t, rf.getNode(r'\results::fp:t_' + Plunge).data())
+            R = scipy.append(R, rf.getNode(r'\results::fp:r_' + Plunge).data())
+            ne = scipy.append(ne, rf.getNode(r'\results::fp:te_' + Plunge).data())
         except:
             warnings.warn('Plunge ' + Plunge + ' for shot %5i' % shot + ' not found')
             pass
@@ -1679,8 +1714,10 @@ def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
         p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
     if t_max is not None:
         p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
-
-    p.convert_abscissa(abscissa)
+    p.convert_abscissa('sqrtpsinorm')
+    _ = p.remove_points(p.X[:, 1] < rho_threshold)
+    if abscissa != 'sqrtpsinorm':
+        p.convert_abscissa(abscissa)
 
     if remove_edge:
         p.remove_edge_points()
