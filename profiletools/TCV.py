@@ -1600,8 +1600,8 @@ def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
         r'\results::thomson:te')
 
     t_Te_TS = electrons.getNode(r'\results::thomson:times').data()
-    Te_TS = N_Te_TS.data()
-    dev_Te_TS = electrons.getNode(r'\results::thomson:te:error_bar').data()
+    Te_TS = N_Te_TS.data()[mask]
+    dev_Te_TS = electrons.getNode(r'\results::thomson:te:error_bar').data()[mask]
     dev_Te_TS[dev_Te_TS < 0] = 0
 
 
