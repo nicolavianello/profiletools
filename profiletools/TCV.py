@@ -26,7 +26,7 @@ from __future__ import division
 
 from .core import Profile, Channel, read_csv, read_NetCDF
 from . import transformations
-
+from . import elm_detection
 import warnings
 
 try:
@@ -49,25 +49,29 @@ try:
 except ImportError:
     warnings.warn("Module TRIPPy could not be loaded!", RuntimeWarning)
 
-_X_label_mapping = {'psinorm': r'$\psi_n$',
-                    'phinorm': r'$\phi_n$',
-                    'volnorm': r'$V_n$',
-                    'Rmid': r'$R_{mid}$',
-                    'r/a': '$r/a$',
-                    'sqrtpsinorm': r'$\sqrt{\psi_n}$',
-                    'sqrtphinorm': r'$\sqrt{\phi_n}$',
-                    'sqrtvolnorm': r'$\sqrt{V_n}$',
-                    'sqrtr/a': r'$\sqrt{r/a}$'}
+_X_label_mapping = {
+    "psinorm": r"$\psi_n$",
+    "phinorm": r"$\phi_n$",
+    "volnorm": r"$V_n$",
+    "Rmid": r"$R_{mid}$",
+    "r/a": "$r/a$",
+    "sqrtpsinorm": r"$\sqrt{\psi_n}$",
+    "sqrtphinorm": r"$\sqrt{\phi_n}$",
+    "sqrtvolnorm": r"$\sqrt{V_n}$",
+    "sqrtr/a": r"$\sqrt{r/a}$",
+}
 _abscissa_mapping = {y: x for x, y in _X_label_mapping.items()}
-_X_unit_mapping = {'psinorm': '',
-                   'phinorm': '',
-                   'volnorm': '',
-                   'Rmid': 'm',
-                   'r/a': '',
-                   'sqrtpsinorm': '',
-                   'sqrtphinorm': '',
-                   'sqrtvolnorm': '',
-                   'sqrtr/a': ''}
+_X_unit_mapping = {
+    "psinorm": "",
+    "phinorm": "",
+    "volnorm": "",
+    "Rmid": "m",
+    "r/a": "",
+    "sqrtpsinorm": "",
+    "sqrtphinorm": "",
+    "sqrtvolnorm": "",
+    "sqrtr/a": "",
+}
 
 
 class BivariatePlasmaProfile(Profile):
@@ -117,9 +121,8 @@ class BivariatePlasmaProfile(Profile):
         """
         if self.abscissa == new_abscissa:
             return
-        elif self.X_dim == 1 or (self.X_dim == 2 and self.abscissa == 'RZ'):
-            if self.abscissa.startswith(
-                    'sqrt') and self.abscissa[4:] == new_abscissa:
+        elif self.X_dim == 1 or (self.X_dim == 2 and self.abscissa == "RZ"):
+            if self.abscissa.startswith("sqrt") and self.abscissa[4:] == new_abscissa:
                 if self.X is not None:
                     new_rho = scipy.power(self.X[:, 0], 2)
                     # Approximate form from uncertainty propagation:
@@ -129,30 +132,23 @@ class BivariatePlasmaProfile(Profile):
                 for p in self.transformed:
                     p.X[:, :, 0] = scipy.power(p.X[:, :, 0], 2)
                     p.err_X[:, :, 0] = p.err_X[:, :, 0] * 2 * p.X[:, :, 0]
-            elif (new_abscissa.startswith('sqrt') and
-                          self.abscissa == new_abscissa[4:]):
+            elif new_abscissa.startswith("sqrt") and self.abscissa == new_abscissa[4:]:
                 if self.X is not None:
                     new_rho = scipy.power(self.X[:, 0], 0.5)
                     # Approximate form from uncertainty propagation:
-                    err_new_rho = self.err_X[:, 0] / \
-                                  (2 * scipy.sqrt(self.X[:, 0]))
+                    err_new_rho = self.err_X[:, 0] / (2 * scipy.sqrt(self.X[:, 0]))
 
                 # Handle transformed quantities:
                 for p in self.transformed:
                     p.X[:, :, 0] = scipy.power(p.X[:, :, 0], 0.5)
-                    p.err_X[:, :, 0] = p.err_X[:, :, 0] / \
-                                       (2 * scipy.sqrt(p.X[:, :, 0]))
+                    p.err_X[:, :, 0] = p.err_X[:, :, 0] / (2 * scipy.sqrt(p.X[:, :, 0]))
             else:
                 times = self._get_efit_times_to_average()
 
-                if self.abscissa == 'RZ':
+                if self.abscissa == "RZ":
                     if self.X is not None:
                         new_rhos = self.efit_tree.rz2rho(
-                            new_abscissa,
-                            self.X[:, 0],
-                            self.X[:, 1],
-                            times,
-                            each_t=True
+                            new_abscissa, self.X[:, 0], self.X[:, 1], times, each_t=True
                         )
                         self.channels = self.channels[:, 0:1]
                     self.X_dim = 1
@@ -160,18 +156,14 @@ class BivariatePlasmaProfile(Profile):
                     # Handle transformed quantities:
                     for p in self.transformed:
                         new_rhos = self.efit_tree.rz2rho(
-                            new_abscissa,
-                            p.X[:, :, 0],
-                            p.X[:, :, 1],
-                            times,
-                            each_t=True
+                            new_abscissa, p.X[:, :, 0], p.X[:, :, 1], times, each_t=True
                         )
                         p.X = scipy.delete(p.X, 1, axis=2)
                         p.err_X = scipy.delete(p.err_X, 1, axis=2)
-                        p.X[:, :, 0] = scipy.atleast_3d(
-                            scipy.mean(new_rhos, axis=0))
+                        p.X[:, :, 0] = scipy.atleast_3d(scipy.mean(new_rhos, axis=0))
                         p.err_X[:, :, 0] = scipy.atleast_3d(
-                            scipy.std(new_rhos, axis=0, ddof=ddof))
+                            scipy.std(new_rhos, axis=0, ddof=ddof)
+                        )
                         p.err_X[scipy.isnan(p.err_X)] = 0
                 else:
                     if self.X is not None:
@@ -180,7 +172,7 @@ class BivariatePlasmaProfile(Profile):
                             new_abscissa,
                             self.X[:, 0],
                             times,
-                            each_t=True
+                            each_t=True,
                         )
 
                     # Handle transformed quantities:
@@ -190,12 +182,12 @@ class BivariatePlasmaProfile(Profile):
                             new_abscissa,
                             p.X[:, :, 0],
                             times,
-                            each_t=True
+                            each_t=True,
                         )
-                        p.X[:, :, 0] = scipy.atleast_3d(
-                            scipy.mean(new_rhos, axis=0))
+                        p.X[:, :, 0] = scipy.atleast_3d(scipy.mean(new_rhos, axis=0))
                         p.err_X[:, :, 0] = scipy.atleast_3d(
-                            scipy.std(new_rhos, axis=0, ddof=ddof))
+                            scipy.std(new_rhos, axis=0, ddof=ddof)
+                        )
                         p.err_X[scipy.isnan(p.err_X)] = 0
                 if self.X is not None:
                     new_rho = scipy.mean(new_rhos, axis=0)
@@ -208,8 +200,7 @@ class BivariatePlasmaProfile(Profile):
             self.X_labels = [_X_label_mapping[new_abscissa]]
             self.X_units = [_X_unit_mapping[new_abscissa]]
         else:
-            if self.abscissa.startswith(
-                    'sqrt') and self.abscissa[4:] == new_abscissa:
+            if self.abscissa.startswith("sqrt") and self.abscissa[4:] == new_abscissa:
                 if self.X is not None:
                     new_rho = scipy.power(self.X[:, 1], 2)
 
@@ -217,8 +208,7 @@ class BivariatePlasmaProfile(Profile):
                 for p in self.transformed:
                     p.X[:, :, 1] = scipy.power(p.X[:, :, 1], 2)
                     p.err_X[:, :, 1] = scipy.zeros_like(p.X[:, :, 1])
-            elif (new_abscissa.startswith('sqrt') and
-                          self.abscissa == new_abscissa[4:]):
+            elif new_abscissa.startswith("sqrt") and self.abscissa == new_abscissa[4:]:
                 if self.X is not None:
                     new_rho = scipy.power(self.X[:, 1], 0.5)
 
@@ -226,7 +216,7 @@ class BivariatePlasmaProfile(Profile):
                 for p in self.transformed:
                     p.X[:, :, 1] = scipy.power(p.X[:, :, 1], 0.5)
                     p.err_X[:, :, 1] = scipy.zeros_like(p.X[:, :, 1])
-            elif self.abscissa == 'RZ':
+            elif self.abscissa == "RZ":
                 # Need to handle this case separately because of the extra
                 # column:
                 if self.X is not None:
@@ -235,7 +225,7 @@ class BivariatePlasmaProfile(Profile):
                         self.X[:, 1],
                         self.X[:, 2],
                         self.X[:, 0],
-                        each_t=False
+                        each_t=False,
                     )
                     self.channels = self.channels[:, 0:2]
                 self.X_dim = 2
@@ -247,7 +237,7 @@ class BivariatePlasmaProfile(Profile):
                         p.X[:, :, 1],
                         p.X[:, :, 2],
                         p.X[:, :, 0],
-                        each_t=False
+                        each_t=False,
                     )
                     p.X = scipy.delete(p.X, 2, axis=2)
                     p.err_X = scipy.delete(p.err_X, 2, axis=2)
@@ -259,7 +249,7 @@ class BivariatePlasmaProfile(Profile):
                         new_abscissa,
                         self.X[:, 1],
                         self.X[:, 0],
-                        each_t=False
+                        each_t=False,
                     )
 
                 # Handle transformed quantities:
@@ -269,21 +259,22 @@ class BivariatePlasmaProfile(Profile):
                         new_abscissa,
                         p.X[:, :, 1],
                         p.X[:, :, 0],
-                        each_t=False
+                        each_t=False,
                     )
                     p.err_X[:, :, 1] = scipy.zeros_like(p.X[:, :, 1])
 
             if self.X is not None:
                 err_new_rho = scipy.zeros_like(self.X[:, 0])
 
-                self.X = scipy.hstack((
-                    scipy.atleast_2d(self.X[:, 0]).T,
-                    scipy.atleast_2d(new_rho).T
-                ))
-                self.err_X = scipy.hstack((
-                    scipy.atleast_2d(self.err_X[:, 0]).T,
-                    scipy.atleast_2d(err_new_rho).T
-                ))
+                self.X = scipy.hstack(
+                    (scipy.atleast_2d(self.X[:, 0]).T, scipy.atleast_2d(new_rho).T)
+                )
+                self.err_X = scipy.hstack(
+                    (
+                        scipy.atleast_2d(self.err_X[:, 0]).T,
+                        scipy.atleast_2d(err_new_rho).T,
+                    )
+                )
 
             self.X_labels = [self.X_labels[0], _X_label_mapping[new_abscissa]]
             self.X_units = [self.X_units[0], _X_unit_mapping[new_abscissa]]
@@ -320,7 +311,7 @@ class BivariatePlasmaProfile(Profile):
         axis : int
             The index of the axis to drop.
         """
-        if self.X_labels[axis] == '$t$':
+        if self.X_labels[axis] == "$t$":
             if self.X is not None:
                 self.t_min = self.X[:, 0].min()
                 self.t_max = self.X[:, 0].max()
@@ -346,9 +337,8 @@ class BivariatePlasmaProfile(Profile):
             All additional kwargs are passed to
             :py:meth:`~profiletools.core.Profile.keep_slices`.
         """
-        if self.X_labels[0] != '$t$':
-            raise ValueError(
-                "Cannot keep specific time slices after time-averaging!")
+        if self.X_labels[0] != "$t$":
+            raise ValueError("Cannot keep specific time slices after time-averaging!")
         try:
             iter(times)
         except TypeError:
@@ -366,13 +356,15 @@ class BivariatePlasmaProfile(Profile):
         """
         # Warn about merging profiles from different shots:
         if self.shot != other.shot:
-            warnings.warn("Merging data from two different shots: %d and %d"
-                          % (self.shot, other.shot,))
+            warnings.warn(
+                "Merging data from two different shots: %d and %d"
+                % (self.shot, other.shot)
+            )
         other.convert_abscissa(self.abscissa)
         # Split off the diagnostic description when merging profiles:
         super(BivariatePlasmaProfile, self).add_profile(other)
         if self.y_label != other.y_label:
-            self.y_label = self.y_label.split(', ')[0]
+            self.y_label = self.y_label.split(", ")[0]
 
     def remove_edge_points(self, allow_conversion=True):
         """Removes points that are outside the LCFS.
@@ -389,35 +381,34 @@ class BivariatePlasmaProfile(Profile):
             (allow conversion).
         """
         if self.X is not None:
-            if self.abscissa == 'RZ':
+            if self.abscissa == "RZ":
                 if allow_conversion:
                     warnings.warn(
                         "Removal of edge points not supported with abscissa RZ. Will "
                         "convert to psinorm."
                     )
-                    self.convert_abscissa('psinorm')
+                    self.convert_abscissa("psinorm")
                 else:
                     raise ValueError(
                         "Removal of edge points not supported with abscissa RZ!"
                     )
-            if 'r/a' in self.abscissa or 'norm' in self.abscissa:
+            if "r/a" in self.abscissa or "norm" in self.abscissa:
                 x_out = 1.0
-            elif self.abscissa == 'Rmid':
+            elif self.abscissa == "Rmid":
                 if self.X_dim == 1:
                     t_EFIT = self._get_efit_times_to_average()
-                    x_out = scipy.mean(
-                        self.efit_tree.getRmidOutSpline()(t_EFIT))
+                    x_out = scipy.mean(self.efit_tree.getRmidOutSpline()(t_EFIT))
                 else:
                     assert self.X_dim == 2
                     x_out = self.efit_tree.getRmidOutSpline()(
-                        scipy.asarray(self.X[:, 0]).ravel())
+                        scipy.asarray(self.X[:, 0]).ravel()
+                    )
             else:
                 raise ValueError(
-                    "Removal of edge points not supported with abscissa %s!" % (
-                        self.abscissa,)
+                    "Removal of edge points not supported with abscissa %s!"
+                    % (self.abscissa,)
                 )
-            self.remove_points((self.X[:, -1] >= x_out)
-                               | scipy.isnan(self.X[:, -1]))
+            self.remove_points((self.X[:, -1] >= x_out) | scipy.isnan(self.X[:, -1]))
 
     def constrain_slope_on_axis(self, err=0, times=None):
         """Constrains the slope at the magnetic axis of this Profile's Gaussian process to be zero.
@@ -444,43 +435,48 @@ class BivariatePlasmaProfile(Profile):
             unique time values in `X[:, 0]`.
         """
         if self.X_dim == 1:
-            if self.abscissa == 'Rmid':
+            if self.abscissa == "Rmid":
                 t_EFIT = self._get_efit_times_to_average()
                 x0 = scipy.mean(self.efit_tree.getMagRSpline()(t_EFIT))
-            elif 'norm' in self.abscissa or 'r/a' in self.abscissa:
+            elif "norm" in self.abscissa or "r/a" in self.abscissa:
                 x0 = 0
             else:
-                raise ValueError("Magnetic axis slope constraint is not "
-                                 "supported for abscissa '%s'. Convert to a "
-                                 "normalized coordinate or Rmid to use this "
-                                 "constraint." % (self.abscissa,))
+                raise ValueError(
+                    "Magnetic axis slope constraint is not "
+                    "supported for abscissa '%s'. Convert to a "
+                    "normalized coordinate or Rmid to use this "
+                    "constraint." % (self.abscissa,)
+                )
             self.gp.add_data(x0, 0, err_y=err, n=1)
         elif self.X_dim == 2:
             if times is None:
                 times = scipy.unique(self.X[:, 0])
-            if self.abscissa == 'Rmid':
+            if self.abscissa == "Rmid":
                 x0 = self.efit_tree.getMagRSpline()(times)
-            elif 'norm' in self.abscissa or 'r/a' in self.abscissa:
+            elif "norm" in self.abscissa or "r/a" in self.abscissa:
                 x0 = scipy.zeros_like(times)
             else:
-                raise ValueError("Magnetic axis slope constraint is not "
-                                 "supported for abscissa '%s'. Convert to a "
-                                 "normalized coordinate or Rmid to use this "
-                                 "constraint." % (self.abscissa,))
+                raise ValueError(
+                    "Magnetic axis slope constraint is not "
+                    "supported for abscissa '%s'. Convert to a "
+                    "normalized coordinate or Rmid to use this "
+                    "constraint." % (self.abscissa,)
+                )
             y = scipy.zeros_like(x0)
-            X = scipy.hstack(
-                (scipy.atleast_2d(times).T,
-                 scipy.atleast_2d(x0).T))
+            X = scipy.hstack((scipy.atleast_2d(times).T, scipy.atleast_2d(x0).T))
             n = scipy.tile([0, 1], (len(y), 1))
             self.gp.add_data(X, y, err_y=err, n=n)
         else:
-            raise ValueError("Magnetic axis slope constraint is not supported "
-                             "for X_dim=%d, abscissa '%s'. Convert to a "
-                             "normalized coordinate or Rmid to use this "
-                             "constraint." % (self.X_dim, self.abscissa,))
+            raise ValueError(
+                "Magnetic axis slope constraint is not supported "
+                "for X_dim=%d, abscissa '%s'. Convert to a "
+                "normalized coordinate or Rmid to use this "
+                "constraint." % (self.X_dim, self.abscissa)
+            )
 
-    def constrain_at_limiter(self, err_y=0.01, err_dy=0.1,
-                             times=None, n_pts=4, expansion=1.25):
+    def constrain_at_limiter(
+        self, err_y=0.01, err_dy=0.1, times=None, n_pts=4, expansion=1.25
+    ):
         """Constrains the slope and value of this Profile's Gaussian
         process to be zero at the GH limiter.
 
@@ -527,19 +523,18 @@ class BivariatePlasmaProfile(Profile):
             multiplied to get the outer limit of the `n_pts` constraint points.
             Default is 1.25.
         """
-        if self.abscissa in ['RZ', 'Z']:
+        if self.abscissa in ["RZ", "Z"]:
             raise ValueError(
                 "Limiter constraint is not supported for abscissa '%s'. Convert "
-                "to a normalized coordinate or Rmid to use this constraint." % (
-                    self.abscissa,)
+                "to a normalized coordinate or Rmid to use this constraint."
+                % (self.abscissa,)
             )
         R_lim, Z_lim = self.get_limiter_locations()
         if self.X_dim == 1:
             t_EFIT = self._get_efit_times_to_average()
             rho_lim = scipy.nanmean(
-                self.efit_tree.rz2rho(
-                    self.abscissa, R_lim, Z_lim, t_EFIT, each_t=True),
-                axis=0
+                self.efit_tree.rz2rho(self.abscissa, R_lim, Z_lim, t_EFIT, each_t=True),
+                axis=0,
             )
             xa = rho_lim.min()
             if scipy.isnan(xa):
@@ -557,14 +552,14 @@ class BivariatePlasmaProfile(Profile):
             if times is None:
                 times = scipy.unique(scipy.asarray(self.X[:, 0]).ravel())
             rho_lim = self.efit_tree.rz2rho(
-                self.abscissa, R_lim, Z_lim, times, each_t=True)
+                self.abscissa, R_lim, Z_lim, times, each_t=True
+            )
             xa = rho_lim.min(axis=1)
             x_pts = scipy.asarray(
-                [scipy.linspace(x, x * expansion, n_pts) for x in xa]).flatten()
+                [scipy.linspace(x, x * expansion, n_pts) for x in xa]
+            ).flatten()
             times = scipy.tile(times, n_pts)
-            X = scipy.hstack(
-                (scipy.atleast_2d(times).T,
-                 scipy.atleast_2d(x_pts).T))
+            X = scipy.hstack((scipy.atleast_2d(times).T, scipy.atleast_2d(x_pts).T))
             y = scipy.zeros_like(x_pts)
             n = scipy.tile([0, 1], (len(y), 1))
             self.gp.add_data(X, y, err_y=err_y, n=0)
@@ -573,7 +568,8 @@ class BivariatePlasmaProfile(Profile):
             raise ValueError(
                 "Limiter constraint is not supported for X_dim=%d, abscissa "
                 "'%s'. Convert to a normalized coordinate or Rmid to use this "
-                "constraint." % (self.X_dim, self.abscissa,))
+                "constraint." % (self.X_dim, self.abscissa)
+            )
 
     def remove_quadrature_points_outside_of_limiter(self):
         """Remove any of the quadrature points which lie outside of the limiter.
@@ -585,7 +581,7 @@ class BivariatePlasmaProfile(Profile):
 
         This only affects the transformed quantities in `self.transformed`.
         """
-        if self.abscissa in ['RZ', 'Z']:
+        if self.abscissa in ["RZ", "Z"]:
             raise ValueError(
                 "Removal of quadrature points outside of the limiter is not "
                 "supported for abscissa '%s'. Convert to a normalized coordinate "
@@ -597,9 +593,8 @@ class BivariatePlasmaProfile(Profile):
             # one unique limiter location:
             t_EFIT = self._get_efit_times_to_average()
             rho_lim = scipy.mean(
-                self.efit_tree.rz2rho(
-                    self.abscissa, R_lim, Z_lim, t_EFIT, each_t=True),
-                axis=0
+                self.efit_tree.rz2rho(self.abscissa, R_lim, Z_lim, t_EFIT, each_t=True),
+                axis=0,
             )
             xa = rho_lim.min()
             for t in self.transformed:
@@ -610,17 +605,16 @@ class BivariatePlasmaProfile(Profile):
             for t in self.transformed:
                 times = scipy.unique(scipy.asarray(t.X[:, :, 0]).ravel())
                 rho_lim = self.efit_tree.rz2rho(
-                    self.abscissa, R_lim, Z_lim, times, each_t=True)
+                    self.abscissa, R_lim, Z_lim, times, each_t=True
+                )
                 xa = rho_lim.min(axis=1)
                 for t_val, xa_val in zip(times, xa):
-                    t.T[(t.X[:, :, 0] == t_val) & (
-                        t.X[:, :, 1] > xa_val)] = 0.0
+                    t.T[(t.X[:, :, 0] == t_val) & (t.X[:, :, 1] > xa_val)] = 0.0
         else:
             raise ValueError(
                 "Removal of quadrature points outside of the limiter is not "
                 "supported for X_dim=%d, abscissa '%s'. Convert to a normalized "
-                "coordinate or Rmid to use this method." % (
-                    self.X_dim, self.abscissa)
+                "coordinate or Rmid to use this method." % (self.X_dim, self.abscissa)
             )
 
     def get_limiter_locations(self):
@@ -632,20 +626,25 @@ class BivariatePlasmaProfile(Profile):
         # Fail back to a conservative position if the limiter data are not in
         # the tree:
         try:
-            analysis = MDSplus.Tree('tcv_shot', self.shot)
+            analysis = MDSplus.Tree("tcv_shot", self.shot)
             R_lim = MDSplus.Data.execute('static("r_t")').getValue().data()
             Z_lim = MDSplus.Data.execute('static("z_t")').getValue().data()
         except BaseException:
             warnings.warn(
-                "No limiter data, defaulting to R=0.91, Z=0.0!",
-                RuntimeWarning
+                "No limiter data, defaulting to R=0.91, Z=0.0!", RuntimeWarning
             )
             Z_lim = [0.0]
             R_lim = [0.91]
         return R_lim, Z_lim
 
-    def create_gp(self, constrain_slope_on_axis=True, constrain_at_limiter=True,
-                  axis_constraint_kwargs={}, limiter_constraint_kwargs={}, **kwargs):
+    def create_gp(
+        self,
+        constrain_slope_on_axis=True,
+        constrain_at_limiter=True,
+        axis_constraint_kwargs={},
+        limiter_constraint_kwargs={},
+        **kwargs
+    ):
         """Create a Gaussian process to handle the data.
 
         Calls :py:meth:`~profiletools.core.Profile.create_gp`, then imposes
@@ -674,26 +673,36 @@ class BivariatePlasmaProfile(Profile):
         """
         # Increase the diagonal factor for multivariate data -- I was having
         # issues with the default level when using slope constraints.
-        if self.X_dim > 1 and 'diag_factor' not in kwargs:
-            kwargs['diag_factor'] = 1e4
-        if 'k' not in kwargs and self.X_dim == 1:
-            kwargs['k'] = 'gibbstanh'
-        if kwargs.get('k', None) == 'gibbstanh':
+        if self.X_dim > 1 and "diag_factor" not in kwargs:
+            kwargs["diag_factor"] = 1e4
+        if "k" not in kwargs and self.X_dim == 1:
+            kwargs["k"] = "gibbstanh"
+        if kwargs.get("k", None) == "gibbstanh":
             # Set the bound on x0 intelligently according to the abscissa:
-            if 'x0_bounds' not in kwargs:
-                kwargs['x0_bounds'] = (
-                    0.87, 0.915) if self.abscissa == 'Rmid' else (
-                    0.94, 1.1)
+            if "x0_bounds" not in kwargs:
+                kwargs["x0_bounds"] = (
+                    (0.87, 0.915) if self.abscissa == "Rmid" else (0.94, 1.1)
+                )
         super(BivariatePlasmaProfile, self).create_gp(**kwargs)
         if constrain_slope_on_axis:
             self.constrain_slope_on_axis(**axis_constraint_kwargs)
         if constrain_at_limiter:
             self.constrain_at_limiter(**limiter_constraint_kwargs)
 
-    def compute_a_over_L(self, X, force_update=False, plot=False,
-                         gp_kwargs={}, MAP_kwargs={}, plot_kwargs={},
-                         return_prediction=False, special_vals=0,
-                         special_X_vals=0, compute_2=False, **predict_kwargs):
+    def compute_a_over_L(
+        self,
+        X,
+        force_update=False,
+        plot=False,
+        gp_kwargs={},
+        MAP_kwargs={},
+        plot_kwargs={},
+        return_prediction=False,
+        special_vals=0,
+        special_X_vals=0,
+        compute_2=False,
+        **predict_kwargs
+    ):
         """Compute the normalized inverse gradient scale length.
 
         Only works on data that have already been time-averaged at the moment.
@@ -745,28 +754,26 @@ class BivariatePlasmaProfile(Profile):
         # TODO: Make finer-grained control over what to return.
         if force_update or self.gp is None:
             self.create_gp(**gp_kwargs)
-            if not predict_kwargs.get('use_MCMC', False):
+            if not predict_kwargs.get("use_MCMC", False):
                 self.find_gp_MAP_estimate(**MAP_kwargs)
         if self.X_dim == 1:
             # Get GP fit:
             XX = scipy.concatenate((X, X[special_X_vals:]))
             if compute_2:
                 XX = scipy.concatenate((XX, X[special_X_vals:]))
-            n = scipy.concatenate((
-                scipy.zeros_like(X), scipy.ones_like(X[special_X_vals:])
-            ))
+            n = scipy.concatenate(
+                (scipy.zeros_like(X), scipy.ones_like(X[special_X_vals:]))
+            )
             if compute_2:
-                n = scipy.concatenate(
-                    (n, 2 * scipy.ones_like(X[special_X_vals:])))
+                n = scipy.concatenate((n, 2 * scipy.ones_like(X[special_X_vals:])))
             out = self.gp.predict(XX, n=n, full_output=True, **predict_kwargs)
-            mean = out['mean']
-            cov = out['cov']
-            if predict_kwargs.get('return_mean_func',
-                                  False) and self.gp.mu is not None:
-                mean_func = out['mean_func']
-                std_func = out['std_func']
-                mean_without_func = out['mean_without_func']
-                std_without_func = out['std_without_func']
+            mean = out["mean"]
+            cov = out["cov"]
+            if predict_kwargs.get("return_mean_func", False) and self.gp.mu is not None:
+                mean_func = out["mean_func"]
+                std_func = out["std_func"]
+                mean_without_func = out["mean_without_func"]
+                std_without_func = out["std_without_func"]
 
             # Ditch the special values:
             special_mean = mean[:special_vals]
@@ -775,32 +782,30 @@ class BivariatePlasmaProfile(Profile):
 
             cov = cov[special_vals:, special_vals:]
             mean = mean[special_vals:]
-            if predict_kwargs.get('return_mean_func',
-                                  False) and self.gp.mu is not None:
+            if predict_kwargs.get("return_mean_func", False) and self.gp.mu is not None:
                 mean_func = mean_func[special_vals:]
                 std_func = std_func[special_vals:]
                 mean_without_func = mean_without_func[special_vals:]
                 std_without_func = std_without_func[special_vals:]
 
             var = scipy.diagonal(cov)
-            mean_val = mean[:len(X)]
-            var_val = var[:len(X)]
-            mean_grad = mean[len(X):2 * len(X)]
-            var_grad = var[len(X):2 * len(X)]
-            if predict_kwargs.get('return_mean_func',
-                                  False) and self.gp.mu is not None:
-                mean_func_val = mean_func[:len(X)]
-                std_func_val = std_func[:len(X)]
-                mean_func_grad = mean_func[len(X):]
-                std_func_grad = std_func[len(X):]
+            mean_val = mean[: len(X)]
+            var_val = var[: len(X)]
+            mean_grad = mean[len(X) : 2 * len(X)]
+            var_grad = var[len(X) : 2 * len(X)]
+            if predict_kwargs.get("return_mean_func", False) and self.gp.mu is not None:
+                mean_func_val = mean_func[: len(X)]
+                std_func_val = std_func[: len(X)]
+                mean_func_grad = mean_func[len(X) :]
+                std_func_grad = std_func[len(X) :]
 
-                mean_without_func_val = mean_without_func[:len(X)]
-                std_without_func_val = std_without_func[:len(X)]
-                mean_without_func_grad = mean_without_func[len(X):]
-                std_without_func_grad = std_without_func[len(X):]
+                mean_without_func_val = mean_without_func[: len(X)]
+                std_without_func_val = std_without_func[: len(X)]
+                mean_without_func_grad = mean_without_func[len(X) :]
+                std_without_func_grad = std_without_func[len(X) :]
             if compute_2:
-                mean_2 = mean[2 * len(X):]
-                var_2 = var[2 * len(X):]
+                mean_2 = mean[2 * len(X) :]
+                var_2 = var[2 * len(X) :]
             i = range(0, len(X))
             j = range(len(X), 2 * len(X))
             cov_val_grad = scipy.asarray(cov[i, j]).flatten()
@@ -815,7 +820,7 @@ class BivariatePlasmaProfile(Profile):
             ok_idxs = self._get_efit_times_to_average(return_idxs=True)
 
             # Get correction factor for converting the abscissa back to Rmid:
-            if self.abscissa == 'Rmid':
+            if self.abscissa == "Rmid":
                 a = self.efit_tree.getAOut()[ok_idxs]
                 var_a = scipy.var(a, ddof=1)
                 if scipy.isnan(var_a):
@@ -829,7 +834,7 @@ class BivariatePlasmaProfile(Profile):
                     mean_dX_droa_2 = 0.0
                     var_dX_droa_2 = 0.0
                     cov_dX_droa_2 = 0.0
-            elif self.abscissa == 'r/a':
+            elif self.abscissa == "r/a":
                 mean_dX_droa = 1.0
                 var_dX_droa = 0.0
 
@@ -847,10 +852,12 @@ class BivariatePlasmaProfile(Profile):
                 for idx, k in zip(ok_idxs, range(0, len(ok_idxs))):
                     resample_factor = 3
                     roa_grid = scipy.linspace(
-                        0, 2, resample_factor * len(self.efit_tree.getRGrid()))
+                        0, 2, resample_factor * len(self.efit_tree.getRGrid())
+                    )
 
                     X_on_grid = self.efit_tree.roa2rho(
-                        self.abscissa, roa_grid, t_efit[idx])
+                        self.abscissa, roa_grid, t_efit[idx]
+                    )
                     # Rmid is handled specially up here, so we can filter the
                     # origin out properly:
                     X_on_grid[roa_grid == 0.0] = 0.0
@@ -862,8 +869,7 @@ class BivariatePlasmaProfile(Profile):
                     spline = scipy.interpolate.InterpolatedUnivariateSpline(
                         roa_grid, X_on_grid, k=3
                     )
-                    roa_X = self.efit_tree.rho2rho(
-                        self.abscissa, 'r/a', X, t_efit[idx])
+                    roa_X = self.efit_tree.rho2rho(self.abscissa, "r/a", X, t_efit[idx])
                     roa_X[X == 0.0] = 0.0
                     dX_droa[:, k] = spline(roa_X, nu=1)
 
@@ -873,158 +879,178 @@ class BivariatePlasmaProfile(Profile):
 
                 mean_dX_droa = scipy.mean(dX_droa, axis=1)
                 var_dX_droa = scipy.var(
-                    dX_droa, ddof=predict_kwargs.get(
-                        'ddof', 1), axis=1)
+                    dX_droa, ddof=predict_kwargs.get("ddof", 1), axis=1
+                )
                 var_dX_droa[scipy.isnan(var_dX_droa)] = 0.0
 
                 if compute_2:
                     mean_dX_droa_2 = scipy.mean(dX_droa_2, axis=1)
                     var_dX_droa_2 = scipy.var(
-                        dX_droa_2, ddof=predict_kwargs.get(
-                            'ddof', 1), axis=1)
+                        dX_droa_2, ddof=predict_kwargs.get("ddof", 1), axis=1
+                    )
                     var_dX_droa_2[scipy.isnan(var_dX_droa_2)] = 0.0
                     cov_dX_droa_2 = scipy.cov(
-                        dX_droa, dX_droa_2, ddof=predict_kwargs.get(
-                            'ddof', 1))[
-                        i, j]
+                        dX_droa, dX_droa_2, ddof=predict_kwargs.get("ddof", 1)
+                    )[i, j]
 
-            if predict_kwargs.get('full_MC', False):
+            if predict_kwargs.get("full_MC", False):
                 # TODO: Doesn't include uncertainty in EFIT quantities!
                 # Use samples:
-                val_samps = out['samp'][special_vals:len(X) + special_vals]
-                grad_samps = out['samp'][len(
-                    X) + special_vals:2 * len(X) + special_vals]
+                val_samps = out["samp"][special_vals : len(X) + special_vals]
+                grad_samps = out["samp"][
+                    len(X) + special_vals : 2 * len(X) + special_vals
+                ]
                 if scipy.ndim(mean_dX_droa) > 0:
-                    mean_dX_droa = scipy.tile(
-                        mean_dX_droa, (val_samps.shape[1], 1)).T
+                    mean_dX_droa = scipy.tile(mean_dX_droa, (val_samps.shape[1], 1)).T
                 a_L_samps = -grad_samps * mean_dX_droa / val_samps
                 mean_a_L = scipy.mean(a_L_samps, axis=1)
                 std_a_L = scipy.std(
-                    a_L_samps,
-                    axis=1,
-                    ddof=predict_kwargs.get(
-                        'ddof',
-                        1))
+                    a_L_samps, axis=1, ddof=predict_kwargs.get("ddof", 1)
+                )
                 if compute_2:
-                    g2_samps = out['samp'][2 * len(X) + special_vals:]
+                    g2_samps = out["samp"][2 * len(X) + special_vals :]
                     if scipy.ndim(mean_dX_droa_2) > 0:
                         mean_dX_droa_2 = scipy.tile(
-                            mean_dX_droa_2, (val_samps.shape[1], 1)).T
-                    a_L_grad_samps = g2_samps * mean_dX_droa / \
-                                     grad_samps + mean_dX_droa_2 / mean_dX_droa
+                            mean_dX_droa_2, (val_samps.shape[1], 1)
+                        ).T
+                    a_L_grad_samps = (
+                        g2_samps * mean_dX_droa / grad_samps
+                        + mean_dX_droa_2 / mean_dX_droa
+                    )
                     mean_a_L_grad = scipy.mean(a_L_grad_samps, axis=1)
                     std_a_L_grad = scipy.std(
-                        a_L_grad_samps,
-                        axis=1,
-                        ddof=predict_kwargs.get(
-                            'ddof',
-                            1))
-                    a2_2_samps = (g2_samps * mean_dX_droa ** 2.0 +
-                                  grad_samps * mean_dX_droa_2) / val_samps
+                        a_L_grad_samps, axis=1, ddof=predict_kwargs.get("ddof", 1)
+                    )
+                    a2_2_samps = (
+                        g2_samps * mean_dX_droa ** 2.0 + grad_samps * mean_dX_droa_2
+                    ) / val_samps
                     mean_a2_2 = scipy.mean(a2_2_samps, axis=1)
                     std_a2_2 = scipy.std(
-                        a2_2_samps,
-                        axis=1,
-                        ddof=predict_kwargs.get(
-                            'ddof',
-                            1))
+                        a2_2_samps, axis=1, ddof=predict_kwargs.get("ddof", 1)
+                    )
             else:
                 # Compute using error propagation:
                 mean_a_L = -mean_grad * mean_dX_droa / mean_val
                 std_a_L = scipy.sqrt(
-                    var_val * (mean_grad * mean_dX_droa / mean_val ** 2.0) ** 2.0 +
-                    var_grad * (mean_dX_droa / mean_val) ** 2.0 +
-                    var_dX_droa * (mean_grad / mean_val) ** 2 -
-                    2.0 * cov_val_grad *
-                    (mean_grad * mean_dX_droa ** 2.0 / mean_val ** 3.0)
+                    var_val * (mean_grad * mean_dX_droa / mean_val ** 2.0) ** 2.0
+                    + var_grad * (mean_dX_droa / mean_val) ** 2.0
+                    + var_dX_droa * (mean_grad / mean_val) ** 2
+                    - 2.0
+                    * cov_val_grad
+                    * (mean_grad * mean_dX_droa ** 2.0 / mean_val ** 3.0)
                 )
                 if compute_2:
-                    mean_a_L_grad = mean_2 * mean_dX_droa / \
-                                    mean_grad + mean_dX_droa_2 / mean_dX_droa
-                    std_a_L_grad = scipy.sqrt(
-                        var_grad * (mean_2 * mean_dX_droa / mean_grad ** 2.0) ** 2.0 +
-                        var_2 * (mean_dX_droa / mean_grad) ** 2.0 -
-                        2.0 * cov_grad_2 * mean_2 * mean_dX_droa ** 2.0 / mean_grad ** 3.0 +
-                        var_dX_droa * (mean_2 / mean_grad - mean_dX_droa_2 / mean_dX_droa ** 2.0) ** 2.0 +
-                        var_dX_droa_2 / mean_dX_droa ** 2.0 +
-                        2.0 * cov_dX_droa_2 *
-                        (mean_2 / mean_grad - mean_dX_droa_2 /
-                         mean_dX_droa ** 2.0) / mean_dX_droa
+                    mean_a_L_grad = (
+                        mean_2 * mean_dX_droa / mean_grad
+                        + mean_dX_droa_2 / mean_dX_droa
                     )
-                    mean_a2_2 = (mean_2 * mean_dX_droa ** 2.0 +
-                                 mean_grad * mean_dX_droa_2) / mean_val
+                    std_a_L_grad = scipy.sqrt(
+                        var_grad * (mean_2 * mean_dX_droa / mean_grad ** 2.0) ** 2.0
+                        + var_2 * (mean_dX_droa / mean_grad) ** 2.0
+                        - 2.0
+                        * cov_grad_2
+                        * mean_2
+                        * mean_dX_droa ** 2.0
+                        / mean_grad ** 3.0
+                        + var_dX_droa
+                        * (mean_2 / mean_grad - mean_dX_droa_2 / mean_dX_droa ** 2.0)
+                        ** 2.0
+                        + var_dX_droa_2 / mean_dX_droa ** 2.0
+                        + 2.0
+                        * cov_dX_droa_2
+                        * (mean_2 / mean_grad - mean_dX_droa_2 / mean_dX_droa ** 2.0)
+                        / mean_dX_droa
+                    )
+                    mean_a2_2 = (
+                        mean_2 * mean_dX_droa ** 2.0 + mean_grad * mean_dX_droa_2
+                    ) / mean_val
                     std_a2_2 = scipy.sqrt(
-                        var_val * (mean_2 * mean_dX_droa ** 2.0 + mean_grad * mean_dX_droa_2) ** 2 / mean_val ** 4 +
-                        var_2 * (mean_dX_droa ** 2.0 / mean_val) ** 2.0 -
-                        2.0 * cov_val_2 * mean_dX_droa ** 2.0 / mean_val ** 3.0 * (
-                            mean_2 * mean_dX_droa ** 2.0 + mean_grad * mean_dX_droa_2
-                        ) +
-                        4.0 * var_dX_droa * (mean_2 * mean_dX_droa / mean_val) ** 2.0 +
-                        var_dX_droa_2 * (mean_grad / mean_val) ** 2.0 +
-                        4.0 * cov_dX_droa_2 * mean_grad * mean_2 * mean_dX_droa / mean_val ** 2.0
+                        var_val
+                        * (mean_2 * mean_dX_droa ** 2.0 + mean_grad * mean_dX_droa_2)
+                        ** 2
+                        / mean_val ** 4
+                        + var_2 * (mean_dX_droa ** 2.0 / mean_val) ** 2.0
+                        - 2.0
+                        * cov_val_2
+                        * mean_dX_droa ** 2.0
+                        / mean_val ** 3.0
+                        * (mean_2 * mean_dX_droa ** 2.0 + mean_grad * mean_dX_droa_2)
+                        + 4.0 * var_dX_droa * (mean_2 * mean_dX_droa / mean_val) ** 2.0
+                        + var_dX_droa_2 * (mean_grad / mean_val) ** 2.0
+                        + 4.0
+                        * cov_dX_droa_2
+                        * mean_grad
+                        * mean_2
+                        * mean_dX_droa
+                        / mean_val ** 2.0
                     )
 
             # Plot result:
             if plot:
-                ax = plot_kwargs.pop('ax', None)
-                envelopes = plot_kwargs.pop('envelopes', [1, 3])
-                base_alpha = plot_kwargs.pop('base_alpha', 0.375)
+                ax = plot_kwargs.pop("ax", None)
+                envelopes = plot_kwargs.pop("envelopes", [1, 3])
+                base_alpha = plot_kwargs.pop("base_alpha", 0.375)
                 if ax is None:
                     f = plt.figure()
                     ax = f.add_subplot(1, 1, 1)
-                elif ax == 'gca':
+                elif ax == "gca":
                     ax = plt.gca()
 
                 l = ax.plot(X, mean_a_L, **plot_kwargs)
-                color = plt.getp(l[0], 'color')
+                color = plt.getp(l[0], "color")
                 for i in envelopes:
-                    ax.fill_between(X,
-                                    mean_a_L - i * std_a_L,
-                                    mean_a_L + i * std_a_L,
-                                    facecolor=color,
-                                    alpha=base_alpha / i)
+                    ax.fill_between(
+                        X,
+                        mean_a_L - i * std_a_L,
+                        mean_a_L + i * std_a_L,
+                        facecolor=color,
+                        alpha=base_alpha / i,
+                    )
         elif self.X_dim == 2:
             raise NotImplementedError("Not there yet!")
         else:
-            raise ValueError("Cannot compute gradient scale length on data with "
-                             "X_dim=%d!" % (self.X_dim,))
+            raise ValueError(
+                "Cannot compute gradient scale length on data with "
+                "X_dim=%d!" % (self.X_dim,)
+            )
 
         if return_prediction:
-            retval = {'mean_val': mean_val,
-                      'std_val': scipy.sqrt(var_val),
-                      'mean_grad': mean_grad,
-                      'std_grad': scipy.sqrt(var_grad),
-                      'mean_a_L': mean_a_L,
-                      'std_a_L': std_a_L,
-                      'cov': cov,
-                      # 'out': out,
-                      'special_mean': special_mean,
-                      'special_cov': special_cov
-                      }
-            if predict_kwargs.get('return_mean_func',
-                                  False) and self.gp.mu is not None:
-                retval['mean_func_val'] = mean_func_val
-                retval['mean_func_grad'] = mean_func_grad
-                retval['std_func_val'] = std_func_val
-                retval['std_func_grad'] = std_func_grad
+            retval = {
+                "mean_val": mean_val,
+                "std_val": scipy.sqrt(var_val),
+                "mean_grad": mean_grad,
+                "std_grad": scipy.sqrt(var_grad),
+                "mean_a_L": mean_a_L,
+                "std_a_L": std_a_L,
+                "cov": cov,
+                # 'out': out,
+                "special_mean": special_mean,
+                "special_cov": special_cov,
+            }
+            if predict_kwargs.get("return_mean_func", False) and self.gp.mu is not None:
+                retval["mean_func_val"] = mean_func_val
+                retval["mean_func_grad"] = mean_func_grad
+                retval["std_func_val"] = std_func_val
+                retval["std_func_grad"] = std_func_grad
 
-                retval['mean_without_func_val'] = mean_without_func_val
-                retval['mean_without_func_grad'] = mean_without_func_grad
-                retval['std_without_func_val'] = std_without_func_val
-                retval['std_without_func_grad'] = std_without_func_grad
+                retval["mean_without_func_val"] = mean_without_func_val
+                retval["mean_without_func_grad"] = mean_without_func_grad
+                retval["std_without_func_val"] = std_without_func_val
+                retval["std_without_func_grad"] = std_without_func_grad
 
-                retval['cov_func'] = out['cov_func']
-                retval['cov_without_func'] = out['cov_without_func']
+                retval["cov_func"] = out["cov_func"]
+                retval["cov_without_func"] = out["cov_without_func"]
             if compute_2:
-                retval['mean_2'] = mean_2
-                retval['std_2'] = scipy.sqrt(var_2)
-                retval['mean_a_L_grad'] = mean_a_L_grad
-                retval['std_a_L_grad'] = std_a_L_grad
-                retval['mean_a2_2'] = mean_a2_2
-                retval['std_a2_2'] = std_a2_2
-            if predict_kwargs.get('full_MC', False) or predict_kwargs.get(
-                    'return_samples', False):
-                retval['samp'] = out['samp']
+                retval["mean_2"] = mean_2
+                retval["std_2"] = scipy.sqrt(var_2)
+                retval["mean_a_L_grad"] = mean_a_L_grad
+                retval["std_a_L_grad"] = std_a_L_grad
+                retval["mean_a2_2"] = mean_a2_2
+                retval["std_a2_2"] = std_a2_2
+            if predict_kwargs.get("full_MC", False) or predict_kwargs.get(
+                "return_samples", False
+            ):
+                retval["samp"] = out["samp"]
             return retval
         else:
             return (mean_a_L, std_a_L)
@@ -1038,12 +1064,10 @@ class BivariatePlasmaProfile(Profile):
         that, the nearest index to t_min is used.
         """
         t_efit = self.efit_tree.getTimeBase()
-        if hasattr(self, 'times'):
+        if hasattr(self, "times"):
             ok_idxs = self.efit_tree._getNearestIdx(self.times, t_efit)
         elif self.t_min != self.t_max:
-            ok_idxs = scipy.where(
-                (t_efit >= self.t_min) & (
-                    t_efit <= self.t_max))[0]
+            ok_idxs = scipy.where((t_efit >= self.t_min) & (t_efit <= self.t_max))[0]
             # Handle case where there are none:
             if len(ok_idxs) == 0:
                 ok_idxs = self.efit_tree._getNearestIdx([self.t_min], t_efit)
@@ -1085,19 +1109,15 @@ class BivariatePlasmaProfile(Profile):
             if rho_grid is None:
                 vol_grid = scipy.linspace(0, 1, npts)
 
-                if 'volnorm' not in self.abscissa:
+                if "volnorm" not in self.abscissa:
                     rho_grid = self.efit_tree.rho2rho(
-                        'volnorm',
-                        self.abscissa,
-                        vol_grid,
-                        times,
-                        each_t=True
+                        "volnorm", self.abscissa, vol_grid, times, each_t=True
                     )
                     rho_grid = scipy.mean(rho_grid, axis=0)
                     # Correct for the NaN that shows up sometimes:
                     rho_grid[0] = 0.0
                 else:
-                    if self.abscissa.startswith('sqrt'):
+                    if self.abscissa.startswith("sqrt"):
                         rho_grid = scipy.sqrt(vol_grid)
                     else:
                         rho_grid = vol_grid
@@ -1112,19 +1132,15 @@ class BivariatePlasmaProfile(Profile):
                 weights[-1] = 1
                 weights *= (b - a) / (2.0 * N)
             else:
-                if 'volnorm' not in self.abscissa:
+                if "volnorm" not in self.abscissa:
                     vol_grid = self.efit_tree.rho2rho(
-                        self.abscissa,
-                        'volnorm',
-                        rho_grid,
-                        times,
-                        each_t=True
+                        self.abscissa, "volnorm", rho_grid, times, each_t=True
                     )
                     # Use nanmean in case there is a value which is teetering
                     # -- we want to keep it in.
                     vol_grid = scipy.stats.nanmean(vol_grid, axis=0)
                 else:
-                    if self.abscissa.startswith('sqrt'):
+                    if self.abscissa.startswith("sqrt"):
                         vol_grid = scipy.asarray(rho_grid, dtype=float) ** 2
                     else:
                         vol_grid = scipy.asarray(rho_grid, dtype=float)
@@ -1132,22 +1148,27 @@ class BivariatePlasmaProfile(Profile):
                 ok_mask = (~scipy.isnan(vol_grid)) & (vol_grid <= 1.0)
                 delta_vol = scipy.diff(vol_grid[ok_mask])
                 weights = scipy.zeros_like(vol_grid)
-                weights[ok_mask] = (
-                    0.5 * (
-                        scipy.insert(delta_vol, 0, 0) +
-                        scipy.insert(delta_vol, -1, 0)
-                    )
+                weights[ok_mask] = 0.5 * (
+                    scipy.insert(delta_vol, 0, 0) + scipy.insert(delta_vol, -1, 0)
                 )
 
             weights = scipy.atleast_2d(weights)
             return (rho_grid, weights)
         else:
             raise NotImplementedError(
-                "Volume averaging not yet supported for X_dim > 1!")
+                "Volume averaging not yet supported for X_dim > 1!"
+            )
 
-    def compute_volume_average(self, return_std=True, grid=None, npts=400,
-                               force_update=False, gp_kwargs={}, MAP_kwargs={},
-                               **predict_kwargs):
+    def compute_volume_average(
+        self,
+        return_std=True,
+        grid=None,
+        npts=400,
+        force_update=False,
+        gp_kwargs={},
+        MAP_kwargs={},
+        **predict_kwargs
+    ):
         """Compute the volume average of the profile.
 
         Right now only supports data that have already been time-averaged.
@@ -1192,10 +1213,11 @@ class BivariatePlasmaProfile(Profile):
         if self.X_dim == 1:
             if force_update or self.gp is None:
                 self.create_gp(**gp_kwargs)
-                if not predict_kwargs.get('use_MCMC', False):
+                if not predict_kwargs.get("use_MCMC", False):
                     self.find_gp_MAP_estimate(**MAP_kwargs)
             rho_grid, weights = self._make_volume_averaging_matrix(
-                rho_grid=grid, npts=npts)
+                rho_grid=grid, npts=npts
+            )
 
             res = self.gp.predict(
                 rho_grid,
@@ -1210,12 +1232,20 @@ class BivariatePlasmaProfile(Profile):
             else:
                 return res[0]
         else:
-            raise NotImplementedError("Volume averaging not yet supported for "
-                                      "X_dim > 1!")
+            raise NotImplementedError(
+                "Volume averaging not yet supported for " "X_dim > 1!"
+            )
 
-    def compute_peaking(self, return_std=True, grid=None, npts=400,
-                        force_update=False, gp_kwargs={}, MAP_kwargs={},
-                        **predict_kwargs):
+    def compute_peaking(
+        self,
+        return_std=True,
+        grid=None,
+        npts=400,
+        force_update=False,
+        gp_kwargs={},
+        MAP_kwargs={},
+        **predict_kwargs
+    ):
         r"""Compute the peaking of the profile.
 
         Right now only supports data that have already been time-averaged.
@@ -1253,15 +1283,16 @@ class BivariatePlasmaProfile(Profile):
         if self.X_dim == 1:
             if force_update or self.gp is None:
                 self.create_gp(**gp_kwargs)
-                if not predict_kwargs.get('use_MCMC', False):
+                if not predict_kwargs.get("use_MCMC", False):
                     self.find_gp_MAP_estimate(**MAP_kwargs)
             rho_grid, weights = self._make_volume_averaging_matrix(
-                rho_grid=grid, npts=npts)
+                rho_grid=grid, npts=npts
+            )
             weights = scipy.append(weights, 0)
 
             # Find the relevant core location:
-            if 'psinorm' in self.abscissa:
-                if self.abscissa.startswith('sqrt'):
+            if "psinorm" in self.abscissa:
+                if self.abscissa.startswith("sqrt"):
                     core_loc = scipy.sqrt(0.2)
                 else:
                     core_loc = 0.2
@@ -1269,7 +1300,8 @@ class BivariatePlasmaProfile(Profile):
                 times = self._get_efit_times_to_average()
 
                 core_loc = self.efit_tree.psinorm2rho(
-                    self.abscissa, 0.2, times, each_t=True)
+                    self.abscissa, 0.2, times, each_t=True
+                )
                 core_loc = scipy.mean(core_loc)
 
             rho_grid = scipy.append(rho_grid, core_loc)
@@ -1289,21 +1321,32 @@ class BivariatePlasmaProfile(Profile):
                 cov_res = res[1]
                 mean = mean_res[1] / mean_res[0]
                 std = scipy.sqrt(
-                    cov_res[1, 1] / mean_res[0] ** 2 +
-                    cov_res[0, 0] * mean_res[1] ** 2 / mean_res[0] ** 4 -
-                    2.0 * cov_res[0, 1] * mean_res[1] / mean_res[0] ** 3
+                    cov_res[1, 1] / mean_res[0] ** 2
+                    + cov_res[0, 0] * mean_res[1] ** 2 / mean_res[0] ** 4
+                    - 2.0 * cov_res[0, 1] * mean_res[1] / mean_res[0] ** 3
                 )
                 return (mean, std)
             else:
                 return res[1] / res[0]
         else:
-            raise NotImplementedError("Computation of peaking factors not yet "
-                                      "supported for X_dim > 1!")
+            raise NotImplementedError(
+                "Computation of peaking factors not yet " "supported for X_dim > 1!"
+            )
 
 
-def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
-         efit_tree=None, remove_edge=False, remove_zeros=True,
-         remove_divertor=False, rho_threshold=1):
+def neTS(
+    shot,
+    abscissa="RZ",
+    t_min=None,
+    t_max=None,
+    efit_tree=None,
+    remove_edge=False,
+    remove_zeros=True,
+    remove_divertor=False,
+    rho_threshold=1,
+    interelm=False,
+    **kwargs
+):
     """Returns a profile representing electron density
        from the core Thomson scattering system.
 
@@ -1330,33 +1373,69 @@ def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
         always flagged with a sentinel value of errorbar.
     remove_divertor: bool, optional
         If True will remove points in the divertor chamber. Useful to then remap upstream
+    interelm : bool, optional is False
+        if True load the appropriate ELM signal from photodiods
+    **kwargs : all the arguments for the ELM detection methods
     """
-    p = BivariatePlasmaProfile(X_dim=3,
-                               X_units=['s', 'm', 'm'],
-                               y_units='$10^{20}$ m$^{-3}$',
-                               X_labels=['$t$', '$R$', '$Z$'],
-                               y_label=r'$n_e$, TS')
+    p = BivariatePlasmaProfile(
+        X_dim=3,
+        X_units=["s", "m", "m"],
+        y_units="$10^{20}$ m$^{-3}$",
+        X_labels=["$t$", "$R$", "$Z$"],
+        y_label=r"$n_e$, TS",
+    )
 
-    electrons = MDSplus.Tree('tcv_shot', shot)
-    Z_CTS = electrons.getNode(
-        r'\diagz::thomson_set_up:vertical_pos').data()
-    R_CTS = electrons.getNode(
-        r'\diagz::thomson_set_up:radial_pos').data()
-    mask = np.ones(Z_CTS.size, dtype='bool')
+    electrons = MDSplus.Tree("tcv_shot", shot)
+    Z_CTS = electrons.getNode(r"\diagz::thomson_set_up:vertical_pos").data()
+    R_CTS = electrons.getNode(r"\diagz::thomson_set_up:radial_pos").data()
+    mask = np.ones(Z_CTS.size, dtype="bool")
     if remove_divertor:
         mask[np.where(Z_CTS <= -0.4)[0]] = False
     # now apply the mas to R and Z
     R_CTS, Z_CTS = R_CTS[mask], Z_CTS[mask]
     channels = range(0, len(Z_CTS))
-    N_ne_TS = electrons.getNode(
-        r'\results::thomson:ne')
+    N_ne_TS = electrons.getNode(r"\results::thomson:ne")
 
-    t_ne_TS = electrons.getNode(r'\results::thomson:times').data()
-    ne_TS = N_ne_TS.data()[mask] / 1e20
-    dev_ne_TS = electrons.getNode(
-        r'\results::thomson:ne:error_bar').data()[mask]/ 1e20
+    t_ne_TS = electrons.getNode(r"\results::thomson:times").data()
+    ne_TS = N_ne_TS.data()[mask, :] / 1e20
+    dev_ne_TS = (
+        electrons.getNode(r"\results::thomson:ne:error_bar").data()[mask, :] / 1e20
+    )
     dev_ne_TS[dev_ne_TS < 0] = 0
+    # mask alredy in time because it run better for ELM
+    _masktime = np.where((t_ne_TS >= t_min) & (t_ne_TS <= t_max))[0]
+    t_ne_TS = t_ne_TS[_masktime]
+    ne_TS = ne_TS[:, _masktime]
+    dev_ne_TS = dev_ne_TS[:, _masktime]
 
+    if interelm:
+        _Node = electrons.getNode(r"\base::pd:pd_001")
+        _dalpha_time = _Node.getDimensionAt().data()
+        # restrict to the time bases
+        _idx = np.where((_dalpha_time >= t_min) & (_dalpha_time <= t_max))[0]
+        _dalpha = _Node.data()[_idx]
+        _dalpha_time = _dalpha_time[_idx]
+        ED = elm_detection.elm_detection(
+            _dalpha_time,
+            _dalpha,
+            rho=kwargs.get("rho", 0.85),
+            width=kwargs.get("width", 0.2),
+            t_sep=kwargs.get("t_sep", 0.002),
+            mode=kwargs.get("mode", "fractional"),
+            mtime=kwargs.get("mtime", 500),
+            hwidth=kwargs.get("hwidth", 8),
+            dnpoint=kwargs.get("dnpoint", 5),
+        )
+        ED.run()
+        maskElm = ED.filter_signal(
+            t_ne_TS, inter_elm_range=kwargs.get("percentage", [0.7, 0.9])
+        )
+    else:
+        maskElm = np.ones(t_ne_TS.size, dtype="bool")
+    # now limit which will make differences only for the interELM call
+    t_ne_TS = t_ne_TS[maskElm]
+    ne_TS = ne_TS[:, maskElm]
+    dev_ne_TS = dev_ne_TS[:, maskElm]
 
     t_grid, Z_grid = scipy.meshgrid(t_ne_TS, Z_CTS)
     t_grid, R_grid = scipy.meshgrid(t_ne_TS, R_CTS)
@@ -1373,26 +1452,27 @@ def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
 
     p.shot = shot
     p.efit_tree = eqtools.TCVLIUQEMATTree(shot)
-    p.abscissa = 'RZ'
+    p.abscissa = "RZ"
 
     p.add_data(X, ne, err_y=err_ne, channels={1: channels, 2: channels})
 
     # Remove flagged points:
     p.remove_points(
-        scipy.isnan(p.err_y) |
-        scipy.isinf(p.err_y) |
-        (p.err_y == 0.0) |
-        (p.err_y == 1.0) |
-        (p.err_y == 2.0) |
-        (p.err_y == -1.0) |
-        ((p.y == -1) & remove_zeros) |
-        scipy.isnan(p.y) |
-        scipy.isinf(p.y)
+        scipy.isnan(p.err_y)
+        | scipy.isinf(p.err_y)
+        | (p.err_y == 0.0)
+        | (p.err_y == 1.0)
+        | (p.err_y == 2.0)
+        | (p.err_y == -1.0)
+        | ((p.y == -1) & remove_zeros)
+        | scipy.isnan(p.y)
+        | scipy.isinf(p.y)
     )
-    if t_min is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
-    if t_max is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
+    # no longer needed because we limit before
+    # if t_min is not None:
+    #     p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
+    # if t_max is not None:
+    #     p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
     p.convert_abscissa(abscissa)
 
     if remove_edge:
@@ -1401,9 +1481,20 @@ def neTS(shot, abscissa='RZ', t_min=None, t_max=None,
     return p
 
 
-def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
-          efit_tree=None, remove_edge=False, rf=None, remove_divertor=False,
-          rho_threshold = 1):
+def neRCP(
+    shot,
+    abscissa="Rmid",
+    t_min=None,
+    t_max=None,
+    electrons=None,
+    efit_tree=None,
+    remove_edge=False,
+    rf=None,
+    remove_divertor=False,
+    rho_threshold=1,
+    interelm=False,
+    **kwargs
+):
     """Returns a profile representing electron density
     from the Reciprocating Langmuir probes.
     It computes correctly the
@@ -1439,14 +1530,14 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     """
     p = BivariatePlasmaProfile(
         X_dim=2,
-        X_units=['s', 'm'],
-        y_units='$10^{20}$ m$^{-3}$',
-        X_labels=['$t$', r'$R_{mid}$'],
-        y_label=r'$n_e$, RCP',
-        weightable=False
+        X_units=["s", "m"],
+        y_units="$10^{20}$ m$^{-3}$",
+        X_labels=["$t$", r"$R_{mid}$"],
+        y_label=r"$n_e$, RCP",
+        weightable=False,
     )
     if rf is None:
-        rf = MDSplus.Tree('tcv_shot', shot)
+        rf = MDSplus.Tree("tcv_shot", shot)
     if efit_tree is None:
         p.efit_tree = eqtools.TCVLIUQEMATTree(shot)
     else:
@@ -1455,20 +1546,54 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     t = []
     R = []
     ne = []
-    for Plunge in ('1', '2'):
+    for Plunge in ("1", "2"):
         try:
-            t = scipy.append(t, rf.getNode(r'\results::fp:t_' + Plunge).data())
-            R = scipy.append(R, rf.getNode(r'\results::fp:r_' + Plunge).data())
-            ne = scipy.append(ne, rf.getNode(r'\results::fp:ne_' + Plunge).data() / 1e20)
+            t = scipy.append(t, rf.getNode(r"\results::fp:t_" + Plunge).data())
+            R = scipy.append(R, rf.getNode(r"\results::fp:r_" + Plunge).data())
+            ne = scipy.append(
+                ne, rf.getNode(r"\results::fp:ne_" + Plunge).data() / 1e20
+            )
         except:
-            warnings.warn('Plunge ' + Plunge + ' for shot %5i' % shot + ' not found')
+            warnings.warn("Plunge " + Plunge + " for shot %5i" % shot + " not found")
             pass
 
     # for each time and R convert into Rmid but we need to restrict
     # for points inside the limiter
     rlim, zlim = p.efit_tree.getMachineCrossSection()
     _mask = scipy.where(scipy.asarray(R) <= rlim.max())[0]
-    t, R, ne = scipy.asarray(t)[_mask], scipy.asarray(R)[_mask], scipy.asarray(ne)[_mask]
+    t, R, ne = (
+        scipy.asarray(t)[_mask],
+        scipy.asarray(R)[_mask],
+        scipy.asarray(ne)[_mask],
+    )
+    # now we mask in time because it works better for interELM
+    _maskTime = np.where((t >= t_min) & (t <= t_max))[0]
+    t, R, ne = t[_maskTime], R[_maskTime], ne[_maskTime]
+    if interelm:
+        _Node = electrons.getNode(r"\base::pd:pd_001")
+        _dalpha_time = _Node.getDimensionAt().data()
+        # restrict to the time bases
+        _idx = np.where((_dalpha_time >= t_min) & (_dalpha_time <= t_max))[0]
+        _dalpha = _Node.data()[_idx]
+        _dalpha_time = _dalpha_time[_idx]
+        ED = elm_detection.elm_detection(
+            _dalpha_time,
+            _dalpha,
+            rho=kwargs.get("rho", 0.85),
+            width=kwargs.get("width", 0.2),
+            t_sep=kwargs.get("t_sep", 0.002),
+            mode=kwargs.get("mode", "fractional"),
+            mtime=kwargs.get("mtime", 500),
+            hwidth=kwargs.get("hwidth", 8),
+            dnpoint=kwargs.get("dnpoint", 5),
+        )
+        ED.run()
+        maskElm = ED.filter_signal(
+            t, inter_elm_range=kwargs.get("percentage", [0.7, 0.9])
+        )
+    else:
+        maskElm = np.ones(t.size, dtype="bool")
+    t, R, ne = t[maskElm], R[maskElm], ne[maskElm]
     Rmid = []
     for _t, _r in zip(t, R):
         Rmid.append(p.efit_tree.rz2rmid(_r, 0, _t))
@@ -1484,20 +1609,22 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     X = scipy.vstack((t, R)).T
 
     p.shot = shot
-    p.abscissa = 'Rmid'
+    p.abscissa = "Rmid"
 
     p.add_data(X, ne, err_y=0.1 * scipy.absolute(ne))
 
     # Remove flagged points:
+    # no more needed because we
+    # limit before
     p.remove_points(p.y == 0)
-    if t_min is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
-    if t_max is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
+    # if t_min is not None:
+    #     p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
+    # if t_max is not None:
+    #     p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
 
-    p.convert_abscissa('sqrtpsinorm')
+    p.convert_abscissa("sqrtpsinorm")
     _ = p.remove_points(p.X[:, 1] < rho_threshold)
-    if abscissa != 'sqrtpsinorm':
+    if abscissa != "sqrtpsinorm":
         p.convert_abscissa(abscissa)
 
     if remove_edge:
@@ -1506,7 +1633,7 @@ def neRCP(shot, abscissa='Rmid', t_min=None, t_max=None, electrons=None,
     return p
 
 
-def ne(shot, include=['TS', 'RCP'], **kwargs):
+def ne(shot, include=["TS", "RCP"], **kwargs):
     """Returns a profile representing electron density from both the
     Thomson scattering and RCP
 
@@ -1531,16 +1658,16 @@ def ne(shot, include=['TS', 'RCP'], **kwargs):
     #     kwargs['efit_tree'] = eqtools.CModEFITTree(shot)
     p_list = []
     for system in include:
-        if system == 'TS':
+        if system == "TS":
             try:
                 p_list.append(neTS(shot, **kwargs))
             except:
-                warnings.warn('Thomson profiles not found')
-        elif system == 'RCP':
+                warnings.warn("Thomson profiles not found")
+        elif system == "RCP":
             try:
                 p_list.append(neRCP(shot, **kwargs))
             except:
-                warnings.warn('RCP profile not found')
+                warnings.warn("RCP profile not found")
         else:
             raise ValueError("Unknown profile '%s'." % (system,))
 
@@ -1551,9 +1678,19 @@ def ne(shot, include=['TS', 'RCP'], **kwargs):
     return p
 
 
-def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
-         efit_tree=None, remove_edge=False, remove_zeros=True,
-         remove_divertor=False, rho_threshold=1):
+def TeTS(
+    shot,
+    abscissa="RZ",
+    t_min=None,
+    t_max=None,
+    efit_tree=None,
+    remove_edge=False,
+    remove_zeros=True,
+    remove_divertor=False,
+    rho_threshold=1,
+    interelm=False,
+    **kwargs
+):
     """Returns a profile representing electron temperature from the core Thomson scattering system.
 
     Parameters
@@ -1579,31 +1716,62 @@ def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
     remove_divertor: bool, optional
         If True will remove points in the divertor chamber. Useful to then remap upstream
     """
-    p = BivariatePlasmaProfile(X_dim=3,
-                               X_units=['s', 'm', 'm'],
-                               y_units='eV',
-                               X_labels=['$t$', '$R$', '$Z$'],
-                               y_label=r'$T_e$, TS')
+    p = BivariatePlasmaProfile(
+        X_dim=3,
+        X_units=["s", "m", "m"],
+        y_units="eV",
+        X_labels=["$t$", "$R$", "$Z$"],
+        y_label=r"$T_e$, TS",
+    )
 
-    electrons = MDSplus.Tree('tcv_shot', shot)
-    Z_CTS = electrons.getNode(
-        r'\diagz::thomson_set_up:vertical_pos').data()
-    R_CTS = electrons.getNode(r'\diagz::thomson_set_up:radial_pos').data()
-    mask = np.ones(Z_CTS.size, dtype='bool')
+    electrons = MDSplus.Tree("tcv_shot", shot)
+    Z_CTS = electrons.getNode(r"\diagz::thomson_set_up:vertical_pos").data()
+    R_CTS = electrons.getNode(r"\diagz::thomson_set_up:radial_pos").data()
+    mask = np.ones(Z_CTS.size, dtype="bool")
     if remove_divertor:
         mask[np.where(Z_CTS <= -0.4)[0]] = False
     # now apply the mas to R and Z
     R_CTS, Z_CTS = R_CTS[mask], Z_CTS[mask]
     channels = range(0, len(Z_CTS))
 
-    N_Te_TS = electrons.getNode(
-        r'\results::thomson:te')
+    N_Te_TS = electrons.getNode(r"\results::thomson:te")
 
-    t_Te_TS = electrons.getNode(r'\results::thomson:times').data()
-    Te_TS = N_Te_TS.data()[mask]
-    dev_Te_TS = electrons.getNode(r'\results::thomson:te:error_bar').data()[mask]
+    t_Te_TS = electrons.getNode(r"\results::thomson:times").data()
+    Te_TS = N_Te_TS.data()[mask, :]
+    dev_Te_TS = electrons.getNode(r"\results::thomson:te:error_bar").data()[mask, :]
     dev_Te_TS[dev_Te_TS < 0] = 0
-
+    # mask alredy in time because it run better for ELM
+    _masktime = np.where((t_Te_TS >= t_min) & (t_Te_TS <= t_max))[0]
+    t_Te_TS = t_Te_TS[_masktime]
+    Te_TS = Te_TS[:, _masktime]
+    dev_Te_TS = dev_Te_TS[:, _masktime]
+    if interelm:
+        _Node = electrons.getNode(r"\base::pd:pd_001")
+        _dalpha_time = _Node.getDimensionAt().data()
+        # restrict to the time bases
+        _idx = np.where((_dalpha_time >= t_min) & (_dalpha_time <= t_max))[0]
+        _dalpha = _Node.data()[_idx]
+        _dalpha_time = _dalpha_time[_idx]
+        ED = elm_detection.elm_detection(
+            _dalpha_time,
+            _dalpha,
+            rho=kwargs.get("rho", 0.85),
+            width=kwargs.get("width", 0.2),
+            t_sep=kwargs.get("t_sep", 0.002),
+            mode=kwargs.get("mode", "fractional"),
+            mtime=kwargs.get("mtime", 500),
+            hwidth=kwargs.get("hwidth", 8),
+            dnpoint=kwargs.get("dnpoint", 5),
+        )
+        ED.run()
+        maskElm = ED.filter_signal(
+            t_Te_TS, inter_elm_range=kwargs.get("percentage", [0.7, 0.9])
+        )
+    else:
+        maskElm = np.ones(t_Te_TS.size, dtype="bool")
+    t_Te_TS = t_Te_TS[maskElm]
+    Te_TS = ne_TS[:, maskElm]
+    dev_Te_TS = dev_Te_TS[:, maskElm]
 
     t_grid, Z_grid = scipy.meshgrid(t_Te_TS, Z_CTS)
     t_grid, R_grid = scipy.meshgrid(t_Te_TS, R_CTS)
@@ -1620,23 +1788,23 @@ def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
 
     p.shot = shot
     p.efit_tree = eqtools.TCVLIUQEMATTree(shot)
-    p.abscissa = 'RZ'
+    p.abscissa = "RZ"
 
     p.add_data(X, Te, err_y=err_Te, channels={1: channels, 2: channels})
     # Remove flagged points:
     p.remove_points(
-        scipy.isnan(p.err_y) |
-        scipy.isinf(p.err_y) |
-        (p.err_y == 0.0) |
-        (p.err_y == 1.0) |
-        ((p.y == -1) & remove_zeros) |
-        scipy.isnan(p.y) |
-        scipy.isinf(p.y)
+        scipy.isnan(p.err_y)
+        | scipy.isinf(p.err_y)
+        | (p.err_y == 0.0)
+        | (p.err_y == 1.0)
+        | ((p.y == -1) & remove_zeros)
+        | scipy.isnan(p.y)
+        | scipy.isinf(p.y)
     )
-    if t_min is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
-    if t_max is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
+    # if t_min is not None:
+    #     p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
+    # if t_max is not None:
+    #     p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
     p.convert_abscissa(abscissa)
 
     if remove_edge:
@@ -1645,9 +1813,18 @@ def TeTS(shot, abscissa='RZ', t_min=None, t_max=None,
     return p
 
 
-def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
-          remove_edge=False, rf=None, remove_divertor=False,
-          rho_threshold = 1):
+def TeRCP(
+    shot,
+    abscissa="Rmid",
+    t_min=None,
+    t_max=None,
+    remove_edge=False,
+    rf=None,
+    remove_divertor=False,
+    rho_threshold=1,
+    interelm=True,
+    **kwargs
+):
     """Returns a profile representing electron Temperature
     from the Reciprocating Langmuir probes.
     It computes correctly the
@@ -1669,29 +1846,69 @@ def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
     rho_threshold: by Default the RCP method does not consider the point inside the LCFS. By specifing a
         different value you can cut the profiles at different rho. useful if the probe profile is messed
         up close to the LCFS. Need to be specified in rho_poloidal or sqrtpsinorm.
+    interelm : bool, optional. Default is False
+        if True compute use only interelm 
     """
     p = BivariatePlasmaProfile(
         X_dim=2,
-        X_units=['s', 'm'],
-        y_units='eV',
-        X_labels=['$t$', r'$R_{mid}$'],
-        y_label=r'$T_e$, RCP',
-        weightable=False
+        X_units=["s", "m"],
+        y_units="eV",
+        X_labels=["$t$", r"$R_{mid}$"],
+        y_label=r"$T_e$, RCP",
+        weightable=False,
     )
-    rf = MDSplus.Tree('tcv_shot', shot)
+    rf = MDSplus.Tree("tcv_shot", shot)
     p.efit_tree = eqtools.TCVLIUQEMATTree(shot)
 
     t = []
     R = []
     ne = []
-    for Plunge in ('1', '2'):
+    for Plunge in ("1", "2"):
         try:
-            t = scipy.append(t, rf.getNode(r'\results::fp:t_' + Plunge).data())
-            R = scipy.append(R, rf.getNode(r'\results::fp:r_' + Plunge).data())
-            ne = scipy.append(ne, rf.getNode(r'\results::fp:te_' + Plunge).data())
+            t = scipy.append(t, rf.getNode(r"\results::fp:t_" + Plunge).data())
+            R = scipy.append(R, rf.getNode(r"\results::fp:r_" + Plunge).data())
+            ne = scipy.append(ne, rf.getNode(r"\results::fp:te_" + Plunge).data())
         except:
-            warnings.warn('Plunge ' + Plunge + ' for shot %5i' % shot + ' not found')
+            warnings.warn("Plunge " + Plunge + " for shot %5i" % shot + " not found")
             pass
+
+    # for each time and R convert into Rmid but we need to restrict
+    # for points inside the limiter
+    rlim, zlim = p.efit_tree.getMachineCrossSection()
+    _mask = scipy.where(scipy.asarray(R) <= rlim.max())[0]
+    t, R, ne = (
+        scipy.asarray(t)[_mask],
+        scipy.asarray(R)[_mask],
+        scipy.asarray(ne)[_mask],
+    )
+    # now we mask in time because it works better for interELM
+    _maskTime = np.where((t >= t_min) & (t <= t_max))[0]
+    t, R, ne = t[_maskTime], R[_maskTime], ne[_maskTime]
+    if interelm:
+        _Node = electrons.getNode(r"\base::pd:pd_001")
+        _dalpha_time = _Node.getDimensionAt().data()
+        # restrict to the time bases
+        _idx = np.where((_dalpha_time >= t_min) & (_dalpha_time <= t_max))[0]
+        _dalpha = _Node.data()[_idx]
+        _dalpha_time = _dalpha_time[_idx]
+        ED = elm_detection.elm_detection(
+            _dalpha_time,
+            _dalpha,
+            rho=kwargs.get("rho", 0.85),
+            width=kwargs.get("width", 0.2),
+            t_sep=kwargs.get("t_sep", 0.002),
+            mode=kwargs.get("mode", "fractional"),
+            mtime=kwargs.get("mtime", 500),
+            hwidth=kwargs.get("hwidth", 8),
+            dnpoint=kwargs.get("dnpoint", 5),
+        )
+        ED.run()
+        maskElm = ED.filter_signal(
+            t, inter_elm_range=kwargs.get("percentage", [0.7, 0.9])
+        )
+    else:
+        maskElm = np.ones(t.size, dtype="bool")
+    t, R, ne = t[maskElm], R[maskElm], ne[maskElm]
 
     # for each time and R convert into Rmid
     Rmid = []
@@ -1704,7 +1921,7 @@ def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
     X = scipy.vstack((t, R)).T
 
     p.shot = shot
-    p.abscissa = 'Rmid'
+    p.abscissa = "Rmid"
 
     p.add_data(X, ne, err_y=0.1 * scipy.absolute(ne))
 
@@ -1714,9 +1931,9 @@ def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
         p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
     if t_max is not None:
         p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
-    p.convert_abscissa('sqrtpsinorm')
+    p.convert_abscissa("sqrtpsinorm")
     _ = p.remove_points(p.X[:, 1] < rho_threshold)
-    if abscissa != 'sqrtpsinorm':
+    if abscissa != "sqrtpsinorm":
         p.convert_abscissa(abscissa)
 
     if remove_edge:
@@ -1725,7 +1942,7 @@ def TeRCP(shot, abscissa='Rmid', t_min=None, t_max=None,
     return p
 
 
-def Te(shot, include=['TS', 'RCP'], **kwargs):
+def Te(shot, include=["TS", "RCP"], **kwargs):
     """Returns a profile representing electron temperature
     from the Thomson scattering and Reciprocating Langmuir Probe.
 
@@ -1745,141 +1962,16 @@ def Te(shot, include=['TS', 'RCP'], **kwargs):
 
     p_list = []
     for system in include:
-        if system == 'TS':
+        if system == "TS":
             try:
                 p_list.append(TeTS(shot, **kwargs))
             except:
-                warnings.warn('Thomson profile not found')
-        elif system == 'RCP':
+                warnings.warn("Thomson profile not found")
+        elif system == "RCP":
             try:
                 p_list.append(TeRCP(shot, **kwargs))
             except:
-                warnings.warn( 'RCP profile not found' )
-        else:
-            raise ValueError("Unknown profile '%s'." % (system,))
-
-    p = p_list.pop()
-    for p_other in p_list:
-        p.add_profile(p_other)
-
-    return p
-
-
-def emissAX(shot, system, abscissa='Rmid', t_min=None, t_max=None, tree=None,
-            efit_tree=None, remove_edge=False):
-    """Returns a profile representing emissivity from the AXA system.
-
-    Parameters
-    ----------
-    shot : int
-        The shot number to load.
-    system : {AXA, AXJ}
-        The system to use.
-    abscissa : str, optional
-        The abscissa to use for the data. The default is 'Rmid'.
-    t_min : float, optional
-        The smallest time to include. Default is None (no lower bound).
-    t_max : float, optional
-        The largest time to include. Default is None (no upper bound).
-    tree : MDSplus.Tree, optional
-        An MDSplus.Tree object open to the cmod tree of the correct shot.
-        The shot of the given tree is not checked! Default is None (open tree).
-    efit_tree : eqtools.CModEFITTree, optional
-        An eqtools.CModEFITTree object open to the correct shot. The shot of the
-        given tree is not checked! Default is None (open tree).
-    remove_edge : bool, optional
-        If True, will remove points that are outside the LCFS. It will convert
-        the abscissa to psinorm if necessary. Default is False (keep edge).
-    """
-    p = BivariatePlasmaProfile(
-        X_dim=2,
-        X_units=['s', 'm'],
-        y_units='MW/m$^3$',
-        X_labels=['$t$', r'$R_{mid}$'],
-        y_label=r'$\epsilon$, %s' % (system.upper())
-    )
-    if tree is None:
-        tree = MDSplus.Tree('cmod', shot)
-    if efit_tree is None:
-        p.efit_tree = eqtools.TCVLIUQEMATTree(shot)
-    else:
-        p.efit_tree = efit_tree
-
-    # Based on what was done in /usr/local/cmod/idl/GENIE/widgets/w_axuv.pro:
-    N_emiss = tree.getNode(
-        'spectroscopy.bolometer.results.diode.%s.emiss' %
-        (system,))
-    emiss = N_emiss.data() * 1e-6
-    R_mid = N_emiss.dim_of(idx=2).data()
-    t = N_emiss.dim_of(idx=1).data()
-    try:
-        err_emiss = N_emiss.dim_of(idx=3).data() * 1e-6
-    except MDSplus.TdiException:
-        err_emiss = 0.1 * emiss
-    try:
-        err_R_mid = 0.5 * (N_emiss.dim_of(idx=4).data() -
-                           N_emiss.dim_of(idx=5).data())
-    except MDSplus.TdiException:
-        err_R_mid = scipy.zeros_like(emiss)
-
-    t_grid = scipy.tile(t, (emiss.shape[1], 1)).T
-    channels = scipy.tile(range(0, emiss.shape[1]), (emiss.shape[0], 1))
-
-    X = scipy.vstack((t_grid.ravel(), R_mid.ravel())).T
-    err_X = scipy.zeros_like(X)
-    err_X[:, 1] = err_R_mid.ravel()
-
-    p.shot = shot
-    p.abscissa = 'Rmid'
-
-    # Add the data directly, since add_data seemed to cause a memory explosion.
-    # Note that this will leave the arrays as float32, which could cause
-    # problems elsewhere.
-    p.X = X
-    p.y = emiss.ravel()
-    p.err_y = err_emiss.ravel()
-    p.err_X = err_X
-
-    p.channels = scipy.tile(scipy.arange(0, len(p.y)), (X.shape[1], 1)).T
-    p.channels[:, 1] = channels.ravel()
-
-    # Remove flagged points:
-    if t_min is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() < t_min)
-    if t_max is not None:
-        p.remove_points(scipy.asarray(p.X[:, 0]).flatten() > t_max)
-
-    p.convert_abscissa(abscissa)
-
-    if remove_edge:
-        p.remove_edge_points()
-
-    return p
-
-
-def emiss(shot, include=['AXA', 'AXJ'], **kwargs):
-    """Returns a profile representing emissivity.
-
-    Parameters
-    ----------
-    shot : int
-        The shot number to load.
-    include : list of str, optional
-        The data sources to include. Valid options are: {AXA, AXJ}. The default
-        is to include both data sources.
-    **kwargs
-        All remaining parameters are passed to the individual loading methods.
-    """
-    if 'tree' not in kwargs:
-        kwargs['tree'] = MDSplus.Tree('cmod', shot)
-    if 'efit_tree' not in kwargs:
-        kwargs['efit_tree'] = eqtools.TCVLIUQEMATTree(shot)
-    p_list = []
-    for system in include:
-        if system == 'AXA':
-            p_list.append(emissAX(shot, 'AXA', **kwargs))
-        elif system == 'AXJ':
-            p_list.append(emissAX(shot, 'AXJ', **kwargs))
+                warnings.warn("RCP profile not found")
         else:
             raise ValueError("Unknown profile '%s'." % (system,))
 
@@ -1922,26 +2014,29 @@ def read_plasma_csv(*args, **kwargs):
     p = read_csv(*args, **kwargs)
     p.__class__ = BivariatePlasmaProfile
     metadata = dict([l.split(None, 1) for l in p.metadata])
-    if 'shot' in metadata:
-        p.shot = int(metadata['shot'])
+    if "shot" in metadata:
+        p.shot = int(metadata["shot"])
         p.efit_tree = eqtools.TCVLIUQEMATTree(p.shot)
-    if 'times' in metadata:
-        p.times = [float(t) for t in metadata['times'].split(',')]
-    if 't_max' in metadata:
-        p.t_max = float(metadata['t_max'])
-    if 't_min' in metadata:
-        p.t_min = float(metadata['t_min'])
-    if 'coordinate' in metadata:
-        p.abscissa = metadata['coordinate']
+    if "times" in metadata:
+        p.times = [float(t) for t in metadata["times"].split(",")]
+    if "t_max" in metadata:
+        p.t_max = float(metadata["t_max"])
+    if "t_min" in metadata:
+        p.t_min = float(metadata["t_min"])
+    if "coordinate" in metadata:
+        p.abscissa = metadata["coordinate"]
     else:
-        if (p.X_dim > 1 and p.X_labels[-2].strip('$ ') == 'R' and
-                    p.X_labels[-1].strip('$ ') == 'Z'):
-            p.abscissa = 'RZ'
+        if (
+            p.X_dim > 1
+            and p.X_labels[-2].strip("$ ") == "R"
+            and p.X_labels[-1].strip("$ ") == "Z"
+        ):
+            p.abscissa = "RZ"
         else:
             try:
                 p.abscissa = _abscissa_mapping[p.X_labels[-1]]
             except KeyError:
-                p.abscissa = p.X_labels[-1].strip('$ ')
+                p.abscissa = p.X_labels[-1].strip("$ ")
 
     return p
 
@@ -1970,23 +2065,25 @@ def read_plasma_NetCDF(*args, **kwargs):
     Parameters are the same as :py:func:`read_NetCDF`.
     """
     # TODO: Does not support transformed quantities!
-    metadata = kwargs.pop('metadata', [])
-    metadata = set(metadata + ['shot', 'times',
-                               't_max', 't_min', 'coordinate'])
+    metadata = kwargs.pop("metadata", [])
+    metadata = set(metadata + ["shot", "times", "t_max", "t_min", "coordinate"])
     p = read_NetCDF(*args, metadata=metadata, **kwargs)
     p.__class__ = BivariatePlasmaProfile
-    if hasattr(p, 'shot'):
+    if hasattr(p, "shot"):
         p.efit_tree = eqtools.TCVLIUQEMATTree(p.shot)
-    if hasattr(p, 'coordinate'):
+    if hasattr(p, "coordinate"):
         p.abscissa = p.coordinate
     else:
-        if (p.X_dim > 1 and p.X_labels[-2].strip('$ ') == 'R' and
-                    p.X_labels[-1].strip('$ ') == 'Z'):
-            p.abscissa = 'RZ'
+        if (
+            p.X_dim > 1
+            and p.X_labels[-2].strip("$ ") == "R"
+            and p.X_labels[-1].strip("$ ") == "Z"
+        ):
+            p.abscissa = "RZ"
         else:
             try:
                 p.abscissa = _abscissa_mapping[p.X_labels[-1]]
             except KeyError:
-                p.abscissa = p.X_labels[-1].strip('$ ')
+                p.abscissa = p.X_labels[-1].strip("$ ")
 
     return p
