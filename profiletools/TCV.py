@@ -1570,7 +1570,7 @@ def neRCP(
     _maskTime = np.where((t >= t_min) & (t <= t_max))[0]
     t, R, ne = t[_maskTime], R[_maskTime], ne[_maskTime]
     if interelm:
-        _Node = electrons.getNode(r"\base::pd:pd_001")
+        _Node = rf.getNode(r"\base::pd:pd_001")
         _dalpha_time = _Node.getDimensionAt().data()
         # restrict to the time bases
         _idx = np.where((_dalpha_time >= t_min) & (_dalpha_time <= t_max))[0]
